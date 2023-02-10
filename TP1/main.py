@@ -34,6 +34,18 @@ def separarRGB(imagem):
     return red, green, blue
 
 
+def pad_image(image):
+    rows, cols = image.shape[:2]
+    padded_rows = (32 - rows % 32) % 32
+    padded_cols = (32 - cols % 32) % 32
+    padded_image = np.pad(image, ((0, padded_rows), (0, padded_cols), (0, 0)), 'reflect')
+
+    return padded_image
+
+def unpad_image(padded_image):
+    return padded_image[:-(padded_image.shape[0] % 32), :-(padded_image.shape[1] % 32), :]
+
+
 def juntarRGB(red, green, blue):
     if not red or not green or not blue:
         return None
@@ -67,9 +79,12 @@ def aplicarColorMap(nomeFich: str):
 
 if __name__ == "__main__":
     plt.close("all")
-    visualizarImagem("imagens/barn_mountains.bmp")
+    im = visualizarImagem("imagens/barn_mountains.bmp")
     criarColorMap("gray", [(0, 0, 0), (1, 1, 1)])
     criarColorMap("red", [(0, 0, 0), (1, 0, 0)])
     criarColorMap("green", [(0, 0, 0), (0, 1, 0)])
     criarColorMap("blue", [(0, 0, 0), (0, 0, 1)])
     aplicarColorMap("imagens/peppers.bmp")
+    pad = pad_image(im)
+    plt.imshow(pad)
+    plt.show()
