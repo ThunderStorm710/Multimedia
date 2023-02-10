@@ -42,6 +42,7 @@ def pad_image(image):
 
     return padded_image
 
+
 def unpad_image(padded_image):
     return padded_image[:-(padded_image.shape[0] % 32), :-(padded_image.shape[1] % 32), :]
 
