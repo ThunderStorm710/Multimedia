@@ -10,7 +10,7 @@ def visualizarImagem(nomeFich: str):
     imagem = plt.imread(nomeFich)
     plt.figure()
     plt.imshow(imagem)
-    plt.title("IMAGEM")
+    plt.title(nomeFich)
     plt.axis("on")
     plt.show()
     return imagem
@@ -28,12 +28,23 @@ def criarColorMap(cor: str, listaCor: list):
     return cmap
 
 
-def separarRGB(imagem):
-    red = imagem[:, :, 0]
-    green = imagem[:, :, 1]
-    blue = imagem[:, :, 2]
+def separarCanais(imagem):
+    channel1 = imagem[:, :, 0]
+    channel2 = imagem[:, :, 1]
+    channel3 = imagem[:, :, 2]
 
-    return red, green, blue
+    return channel1, channel2, channel3
+
+
+def juntarCanais(channel1, channel2, channel3):
+    if not channel1 or not channel2 or not channel3:
+        return None
+
+    imagem = np.zeros_like(channel1, dtype=np.uint8)
+    imagem[:, :, 0] = channel1
+    imagem[:, :, 1] = channel2
+    imagem[:, :, 2] = channel3
+    return imagem
 
 
 def pad_image(image):
@@ -53,23 +64,12 @@ def unpad_image(img_padded, imagem_original):
     return img
 
 
-def juntarRGB(red, green, blue):
-    if not red or not green or not blue:
-        return None
-
-    imagem = np.zeros_like(red, dtype=np.uint8)
-    imagem[:, :, 0] = red
-    imagem[:, :, 1] = green
-    imagem[:, :, 2] = blue
-    return imagem
-
-
 def aplicarColorMap(nomeFich: str):
     if not nomeFich:
         return None
 
     imagem = plt.imread(nomeFich)
-    R, G, B = separarRGB(imagem)
+    R, G, B = separarCanais(imagem)
     cmap = clr.LinearSegmentedColormap.from_list("red", [(0, 0, 0), (1, 0, 0)], 256)
     imagem_colorida = cmap(R)
     plt.imshow(imagem_colorida)
@@ -84,45 +84,47 @@ def aplicarColorMap(nomeFich: str):
     plt.show()
 
 
+def verYCbCr(imagem):
+    Y, Cb, Cr = imagem[:, :, 0], imagem[:, :, 1], imagem[:, :, 2]
+    fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+    axs[0].imshow(Y, cmap='gray')
+    axs[0].set_title('Canal Y')
+    axs[1].imshow(Cb, cmap='jet')
+    axs[1].set_title('Canal Cb')
+    axs[2].imshow(Cr, cmap='coolwarm')
+    axs[2].set_title('Canal Cr')
+    plt.show()
+
+
 def aplicarColorMapDado(nomeFich: str, cmap):
     if not nomeFich:
         return None
 
     imagem = plt.imread(nomeFich)
-    R, G, B = separarRGB(imagem)
+    R, G, B = separarCanais(imagem)
     imagem_colorida = cmap(R)
     # imagem_colorida = juntarRGB(cmap(R), cmap(G), cmap(B))
     plt.imshow(imagem_colorida)
     plt.show()
 
 
-def rgb_conversion_ycbcr(imagem):
-    '''
-    xform = np.array([[.299, .587, .114], [-.1687, -.3313, .5], [.5, -.4187, -.0813]])
-    ycbcr = imagem.dot(xform.T)
-    ycbcr[:,:,[1,2]] += 128
-    return np.uint8(ycbcr)
-    '''
-    xform = np.array([[.299, .587, .114], [-.1687, -.3313, .5], [.5, -.4187, -.0813]])
-    ycbcr = im.dot(xform.T)
-    ycbcr[:, :, [1, 2]] += 128
-    return np.uint8(ycbcr)
+def rgb_para_ycbcr(imagem):
+    R, G, B = imagem[:, :, 0], imagem[:, :, 1], imagem[:, :, 2]
+    Y = 0.299 * R + 0.587 * G + 0.114 * B
+    Cb = 128 - 0.168736 * R - 0.331264 * G + 0.5 * B
+    Cr = 128 + 0.5 * R - 0.418688 * G - 0.081312 * B
+    ycbcr_image = np.dstack((Y, Cb, Cr))
+    return ycbcr_image
 
 
-def ycbcr_conversion_rgb(imagem):
-    '''
-    xform = np.array([[1, 0, 1.402], [1, -0.34414, -.71414], [1, 1.772, 0]])
-    rgb = imagem.astype(np.float)
-    rgb[:,:,[1,2]] -= 128
-    return np.uint8(rgb.dot(xform.T))
-    '''
-    xform = np.array([[1, 0, 1.402], [1, -0.34414, -.71414], [1, 1.772, 0]])
-    rgb = im.astype(np.float)
-    rgb[:, :, [1, 2]] -= 128
-    rgb = rgb.dot(xform.T)
-    np.putmask(rgb, rgb > 255, 255)
-    np.putmask(rgb, rgb < 0, 0)
-    return np.uint8(rgb)
+def ycbcr_para_rgb(imagem):
+    Y, Cb, Cr = imagem[:, :, 0], imagem[:, :, 1], imagem[:, :, 2]
+    R = Y + 1.402 * (Cr - 128)
+    G = Y - 0.344136 * (Cb - 128) - 0.714136 * (Cr - 128)
+    B = Y + 1.772 * (Cb - 128)
+
+    rgb_image = np.dstack((R, G, B))
+    return rgb_image
 
 
 if __name__ == "__main__":
@@ -143,17 +145,28 @@ if __name__ == "__main__":
     plt.title("UNPADDED")
     plt.imshow(i)
     plt.show()
-    '''
-    colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])  #
-    aplicarColorMapDado("imagens/peppers.bmp", colormap)  #
+
+    # colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])  #
+    # aplicarColorMapDado("imagens/peppers.bmp", colormap)  #
     # plt.imshow(pad)
     # plt.show()
     # ex 5
-    imagem = plt.imread("imagens/barn_mountains.bmp")
-    ycbcr_image = rgb_conversion_ycbcr(imagem)
+    ycbcr_image = rgb_para_ycbcr(im)
     plt.imshow(ycbcr_image)
+    plt.title("RGB para YCbCr")
     plt.show()
-    rgb_image = ycbcr_conversion_rgb(ycbcr_image)
+
+    plt.imshow(ycbcr_image[:, :, 0])
+    plt.title("RGB para YCbCr")
+    plt.show()
+    plt.imshow(ycbcr_image[:, :, 1])
+    plt.title("RGB para YCbCr")
+    plt.show()
+    plt.imshow(ycbcr_image[:, :, 2])
+    plt.title("RGB para YCbCr")
+    plt.show()
+    verYCbCr(ycbcr_image)
+    rgb_image = ycbcr_para_rgb(ycbcr_image)
     plt.imshow(rgb_image)
+    plt.title("YCbCr para RGB")
     plt.show()
-    '''
