@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
+import cv2
 
 
 def visualizarImagem(nomeFich: str):
@@ -84,22 +85,6 @@ def aplicarColorMap(nomeFich: str):
     plt.show()
 
 
-def verYCbCr(imagem):
-    R, G, B = imagem[:, :, 0], imagem[:, :, 1], imagem[:, :, 2]
-    Y = 0.299 * R + 0.587 * G + 0.114 * B
-    Cb = 128 - 0.168736 * R - 0.331264 * G + 0.5 * B
-    Cr = 128 + 0.5 * R - 0.418688 * G - 0.081312 * B
-
-    fig, axs = plt.subplots(1, 3, figsize=(10, 5))
-    axs[0].imshow(Y, cmap='gray')
-    axs[0].set_title('Canal Y')
-    axs[1].imshow(Cb, cmap='jet')
-    axs[1].set_title('Canal Cb')
-    axs[2].imshow(Cr, cmap='coolwarm')
-    axs[2].set_title('Canal Cr')
-    plt.show()
-
-
 def aplicarColorMapDado(nomeFich: str, cmap):
     if not nomeFich:
         return None
@@ -107,6 +92,19 @@ def aplicarColorMapDado(nomeFich: str, cmap):
     imagem = plt.imread(nomeFich)
     R, G, B = separarCanais(imagem)
     plt.imshow(R, cmap=cmap)
+    plt.show()
+
+
+def verYCbCr(imagem):
+    Y, Cb, Cr = imagem[:, :, 0], imagem[:, :, 1], imagem[:, :, 2]
+
+    fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+    axs[0].imshow(Y, cmap='gray')
+    axs[0].set_title('Canal Y')
+    axs[1].imshow(Cb, cmap='gray')
+    axs[1].set_title('Canal Cb')
+    axs[2].imshow(Cr, cmap='gray')
+    axs[2].set_title('Canal Cr')
     plt.show()
 
 
@@ -128,17 +126,43 @@ def ycbcr_para_rgb(imagem):
     return np.uint8(rgb)
 
 
+def subsample(Y, Cb, Cr, downsample: str):
+    Y_d = Y
+
+    if downsample == "4:2:2":
+        Cb_d = cv2.resize(Cb, (0, 0), fx=0.5, fy=1)
+        Cr_d = cv2.resize(Cr, (0, 0), fx=0.5, fy=1)
+    elif downsample == "4:2:0":
+        Cb_d = cv2.resize(Cb, (0, 0), fx=0.5, fy=0.5)
+        Cr_d = cv2.resize(Cr, (0, 0), fx=0.5, fy=0.5)
+    else:
+        Cb_d = Cb
+        Cr_d = Cr
+
+    return Y_d, Cb_d, Cr_d
+
+
+def upsample(Y, Cb_d, Cr_d):
+    # Upsampling Cb e Cr para a resolução original
+    Cb = cv2.resize(Cb_d, (Y.shape[1], Y.shape[0]))
+    Cr = cv2.resize(Cr_d, (Y.shape[1], Y.shape[0]))
+
+    # Não há upsampling no canal Y
+    Y = Y
+
+    return Y, Cb, Cr
+
+
 if __name__ == "__main__":
     plt.close("all")
     im = visualizarImagem("imagens/barn_mountains.bmp")
-    '''
-    criarColorMap("gray", [(0, 0, 0), (1, 1, 1)])
-    criarColorMap("red", [(0, 0, 0), (1, 0, 0)])
-    criarColorMap("green", [(0, 0, 0), (0, 1, 0)])
-    criarColorMap("blue", [(0, 0, 0), (0, 0, 1)])
-    
-    '''
+
+    # ex 3
     aplicarColorMap("imagens/peppers.bmp")
+    colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
+    aplicarColorMapDado("imagens/peppers.bmp", colormap)
+
+    # ex 4
     pad = pad_image(im)
     i = unpad_image(pad, im)
     plt.title("PADDING ADDED")
@@ -148,32 +172,38 @@ if __name__ == "__main__":
     plt.imshow(i)
     plt.show()
 
-    colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
-    aplicarColorMapDado("imagens/peppers.bmp", colormap)
-    # plt.imshow(pad)
-    # plt.show()
     # ex 5
-
     ycbcr_image = rgb_para_ycbcr(im)
     plt.imshow(ycbcr_image)
     plt.title("RGB para YCbCr")
     plt.show()
-    '''
-    plt.imshow(ycbcr_image[:, :, 0])
-    plt.title("RGB para YCbCr")
-    plt.show()
-    plt.imshow(ycbcr_image[:, :, 1])
-    plt.title("RGB para YCbCr")
-    plt.show()
-    plt.imshow(ycbcr_image[:, :, 2])
-    plt.title("RGB para YCbCr")
-    plt.show()
-'''
+
     verYCbCr(im)
     rgb_image = ycbcr_para_rgb(ycbcr_image)
     # plt.imshow(rgb_image)
-    print(f"Valor do pixel [0,0]: {im[0][0]}")
-    print(f"Valor do pixel [0,0]: {rgb_image[0][0]}")
+    print(f"Imagem Original --> Valor do pixel [0,0]: {im[0][0]}")
+    print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
+    '''
+    # ex 6
+    Y, Cr, Cb = separarCanais(ycbcr_image)
+    Y_d, Cb_d, Cr_d = subsample(Y, Cb, Cr, "4:2:2")
 
-    # plt.title("YCbCr para RGB")
-    # plt.show()
+    cv2.imshow("Y_d", Y_d)
+    cv2.imshow("Cb_d", Cb_d)
+    cv2.imshow("Cr_d", Cr_d)
+
+    # Upsampling
+    Y_u, Cb_u, Cr_u = upsample(Y_d, Cb_d, Cr_d)
+
+    cv2.imshow("Y_u", Y_u)
+    cv2.imshow("Cb_u", Cb_u)
+    cv2.imshow("Cr_u", Cr_u)
+
+    # Concatena os canais para formar a imagem reconstruída
+    img_reconstruida = cv2.merge((Y_u, Cr_u, Cb_u))
+
+    # Exibe a imagem reconstruída
+    cv2.imshow('Imagem reconstruída', img_reconstruida)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
