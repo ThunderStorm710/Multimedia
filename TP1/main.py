@@ -128,7 +128,6 @@ def ycbcr_para_rgb(imagem):
     return np.uint8(rgb)
 
 
-
 if __name__ == "__main__":
     plt.close("all")
     im = visualizarImagem("imagens/barn_mountains.bmp")
@@ -172,9 +171,9 @@ if __name__ == "__main__":
 '''
     verYCbCr(im)
     rgb_image = ycbcr_para_rgb(ycbcr_image)
-    #plt.imshow(rgb_image)
+    # plt.imshow(rgb_image)
     print(f"Valor do pixel [0,0]: {im[0][0]}")
     print(f"Valor do pixel [0,0]: {rgb_image[0][0]}")
 
-    #plt.title("YCbCr para RGB")
-    #plt.show()
+    # plt.title("YCbCr para RGB")
+    # plt.show()
