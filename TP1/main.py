@@ -4,15 +4,39 @@ import numpy as np
 import cv2
 
 
-def visualizarImagem(nomeFich: str):
+def encode(nomeFich: str):
     if not nomeFich:
         return None
+    image = plt.imread(nomeFich)
+    visualizarImagem(image, nomeFich, "off")
+    # ex 3
+    aplicarColorMap(nomeFich)
+    colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
+    aplicarColorMapDado(nomeFich, colormap)
+    # ex 4
+    padded_image = pad_image(image)
+    visualizarImagem(padded_image, "PADDED IMAGE", "off")
+    # ex 5
+    ycbcr_image = rgb_para_ycbcr(padded_image)
+    visualizarImagem(ycbcr_image, "RGB para YCbCr", "off")
+    verYCbCr(ycbcr_image)
+    return image, padded_image, ycbcr_image
 
-    imagem = plt.imread(nomeFich)
+
+def decode(imagemOriginal, imagemPadding, imagemYCbCr):
+    unpadded_image = unpad_image(imagemPadding, imagemOriginal)
+    visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
+    rgb_image = ycbcr_para_rgb(imagemYCbCr)
+    visualizarImagem(rgb_image, "YCbCr para RGB", "off")
+    print(f"Imagem Original --> Valor do pixel [0,0]: {imagemOriginal[0][0]}")
+    print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
+
+
+def visualizarImagem(imagem, titulo: str = None, axis: str = None):
     plt.figure()
     plt.imshow(imagem)
-    plt.title(nomeFich)
-    plt.axis("on")
+    plt.title(titulo)
+    plt.axis(axis)
     plt.show()
     return imagem
 
@@ -120,13 +144,14 @@ def ycbcr_para_rgb(imagem):
     rgb = imagem.astype(float)
     rgb[:, :, [1, 2]] -= 128
     rgb = rgb.dot(xform.T)
-    rgb = rgb.astype(int)
+    np.round(rgb, 0)
     np.putmask(rgb, rgb > 255, 255)
     np.putmask(rgb, rgb < 0, 0)
+    rgb = rgb.astype(int)
     return np.uint8(rgb)
 
 
-def subsample(Y, Cb, Cr, downsample: str):
+def subamostragem(Y, Cb, Cr, downsample: str):
     Y_d = Y
 
     if downsample == "4:2:2":
@@ -142,7 +167,7 @@ def subsample(Y, Cb, Cr, downsample: str):
     return Y_d, Cb_d, Cr_d
 
 
-def upsample(Y, Cb_d, Cr_d):
+def reconstrucao(Y, Cb_d, Cr_d):
     # Upsampling Cb e Cr para a resolução original
     Cb = cv2.resize(Cb_d, (Y.shape[1], Y.shape[0]))
     Cr = cv2.resize(Cr_d, (Y.shape[1], Y.shape[0]))
@@ -154,35 +179,10 @@ def upsample(Y, Cb_d, Cr_d):
 
 
 if __name__ == "__main__":
-    plt.close("all")
-    im = visualizarImagem("imagens/barn_mountains.bmp")
+    plt.close('all')
+    original, padded, ycbcr = encode("imagens/barn_mountains.bmp")
+    decode(original, padded, ycbcr)
 
-    # ex 3
-    aplicarColorMap("imagens/peppers.bmp")
-    colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
-    aplicarColorMapDado("imagens/peppers.bmp", colormap)
-
-    # ex 4
-    pad = pad_image(im)
-    i = unpad_image(pad, im)
-    plt.title("PADDING ADDED")
-    plt.imshow(pad)
-    plt.show()
-    plt.title("PADDING REMOVED")
-    plt.imshow(i)
-    plt.show()
-
-    # ex 5
-    ycbcr_image = rgb_para_ycbcr(im)
-    plt.imshow(ycbcr_image)
-    plt.title("RGB para YCbCr")
-    plt.show()
-
-    verYCbCr(im)
-    rgb_image = ycbcr_para_rgb(ycbcr_image)
-    # plt.imshow(rgb_image)
-    print(f"Imagem Original --> Valor do pixel [0,0]: {im[0][0]}")
-    print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
     '''
     # ex 6
     Y, Cr, Cb = separarCanais(ycbcr_image)
