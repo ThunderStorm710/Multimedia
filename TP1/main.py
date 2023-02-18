@@ -20,16 +20,36 @@ def encode(nomeFich: str):
     ycbcr_image = rgb_para_ycbcr(padded_image)
     visualizarImagem(ycbcr_image, "RGB para YCbCr", "off")
     verYCbCr(ycbcr_image)
-    return image, padded_image, ycbcr_image
+    # ex 6
+    Y, Cr, Cb = separarCanais(ycbcr_image)
+    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:2")
+
+    cv2.imshow("Y_d", Y_d)
+    cv2.imshow("Cb_d", Cb_d)
+    cv2.imshow("Cr_d", Cr_d)
+    return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
 
-def decode(imagemOriginal, imagemPadding, imagemYCbCr):
+def decode(imagemOriginal, imagemPadding, imagemYCbCr, Y_d, Cb_d, Cr_d):
+    # ex 4
     unpadded_image = unpad_image(imagemPadding, imagemOriginal)
     visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
+    # ex 5
     rgb_image = ycbcr_para_rgb(imagemYCbCr)
     visualizarImagem(rgb_image, "YCbCr para RGB", "off")
     print(f"Imagem Original --> Valor do pixel [0,0]: {imagemOriginal[0][0]}")
     print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
+    # ex 6
+    Y_u, Cb_u, Cr_u = reconstrucao(Y_d, Cb_d, Cr_d)
+    cv2.imshow("Y_u", Y_u)
+    cv2.imshow("Cb_u", Cb_u)
+    cv2.imshow("Cr_u", Cr_u)
+    img_reconstruida = cv2.merge((Y_u, Cr_u, Cb_u))
+
+    # Exibe a imagem reconstruída
+    cv2.imshow('Imagem reconstruída', img_reconstruida)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def visualizarImagem(imagem, titulo: str = None, axis: str = None):
@@ -180,30 +200,6 @@ def reconstrucao(Y, Cb_d, Cr_d):
 
 if __name__ == "__main__":
     plt.close('all')
-    original, padded, ycbcr = encode("imagens/barn_mountains.bmp")
-    decode(original, padded, ycbcr)
+    original, padded, ycbcr, Y_d, Cb_d, Cr_d = encode("imagens/barn_mountains.bmp")
+    decode(original, padded, ycbcr, Y_d, Cb_d, Cr_d)
 
-    '''
-    # ex 6
-    Y, Cr, Cb = separarCanais(ycbcr_image)
-    Y_d, Cb_d, Cr_d = subsample(Y, Cb, Cr, "4:2:2")
-
-    cv2.imshow("Y_d", Y_d)
-    cv2.imshow("Cb_d", Cb_d)
-    cv2.imshow("Cr_d", Cr_d)
-
-    # Upsampling
-    Y_u, Cb_u, Cr_u = upsample(Y_d, Cb_d, Cr_d)
-
-    cv2.imshow("Y_u", Y_u)
-    cv2.imshow("Cb_u", Cb_u)
-    cv2.imshow("Cr_u", Cr_u)
-
-    # Concatena os canais para formar a imagem reconstruída
-    img_reconstruida = cv2.merge((Y_u, Cr_u, Cb_u))
-
-    # Exibe a imagem reconstruída
-    cv2.imshow('Imagem reconstruída', img_reconstruida)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    '''
