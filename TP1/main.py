@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
 import cv2
+from scipy.fftpack import dct, idct
 
 
 def encode(nomeFich: str):
@@ -12,6 +13,7 @@ def encode(nomeFich: str):
     # ex 3
     aplicarColorMap(nomeFich)
     colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
+    blueMap = criarColorMap("blue", [(0, 0, 0), (0.0, 0.0, 1.0)])
     aplicarColorMapDado(nomeFich, colormap)
     # ex 4
     padded_image = pad_image(image)
@@ -22,7 +24,32 @@ def encode(nomeFich: str):
     verYCbCr(ycbcr_image)
     # ex 6
     Y, Cr, Cb = separarCanais(ycbcr_image)
-    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:2")
+    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:0")
+    # ex 7
+    Y_dct = calculate_dct(Y_d)
+    Cb_dct = calculate_dct(Cb_d)
+    Cr_dct = calculate_dct(Cr_d)
+    # Visualizando as imagens obtidas
+    plt.figure(figsize=(12, 6))
+
+    # Y_dct
+    plt.subplot(1, 3, 1)
+    plt.imshow(np.log(np.abs(Y_dct) + 0.0001), cmap=blueMap)
+    plt.title("Y_dct")
+    # Cb_dct
+    plt.subplot(1, 3, 2)
+    plt.imshow(np.log(np.abs(Cb_dct) + 0.0001), cmap=blueMap)
+    plt.title("Cb_dct")
+    # Cr_dct
+    plt.subplot(1, 3, 3)
+    plt.imshow(np.log(np.abs(Cr_dct) + 0.0001), cmap=blueMap)
+    plt.title("Cr_dct")
+
+    plt.show()
+
+    Y_idct = calculate_idct(Y_dct)
+    Cb_idct = calculate_idct(Cb_dct)
+    Cr_idct = calculate_idct(Cr_dct)
 
     cv2.imshow("Y_d", Y_d)
     cv2.imshow("Cb_d", Cb_d)
@@ -198,8 +225,15 @@ def reconstrucao(Y, Cb_d, Cr_d):
     return Y, Cb, Cr
 
 
+def calculate_dct(channel):
+    return dct(dct(channel, norm="ortho").T, norm="ortho").T
+
+
+def calculate_idct(dct_channel):
+    return idct(idct(dct_channel, norm="ortho").T, norm="ortho").T
+
+
 if __name__ == "__main__":
     plt.close('all')
     original, padded, ycbcr, Y_d, Cb_d, Cr_d = encode("imagens/barn_mountains.bmp")
     decode(original, padded, ycbcr, Y_d, Cb_d, Cr_d)
-
