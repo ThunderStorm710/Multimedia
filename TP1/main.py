@@ -3,7 +3,6 @@ import matplotlib.colors as clr
 import numpy as np
 import cv2
 from scipy.fftpack import dct, idct
-from skimage.util import view_as_blocks
 
 
 def encode(nomeFich: str):
@@ -88,6 +87,25 @@ def encode(nomeFich: str):
     plt.subplot(233)
     plt.imshow(np.log(np.abs(Cr_idct8) + 0.0001), cmap='gray')
     plt.title('Cr_iDCT8')
+    plt.show()
+
+    BS = 64
+
+    Y_dct8 = dct2d_blocks(Y_d, BS)
+    Cb_dct8 = dct2d_blocks(Cb_d, BS)
+    Cr_dct8 = dct2d_blocks(Cr_d, BS)
+
+    # Visualização com transformação logarítmica
+    plt.figure(figsize=(10, 10))
+    plt.subplot(231)
+    plt.imshow(np.log(np.abs(Y_dct8) + 0.0001), cmap='gray')
+    plt.title('Y_DCT8')
+    plt.subplot(232)
+    plt.imshow(np.log(np.abs(Cb_dct8) + 0.0001), cmap='gray')
+    plt.title('Cb_DCT8')
+    plt.subplot(233)
+    plt.imshow(np.log(np.abs(Cr_dct8) + 0.0001), cmap='gray')
+    plt.title('Cr_DCT8')
     plt.show()
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
@@ -289,6 +307,32 @@ def dct_block(channel, bs):
     # Convert the list of blocks back into a 2D numpy array
     return np.block(dct_blocks)
 
+
+def dct2d_blocks(channel, block_size):
+    rows, cols = channel.shape
+
+    # Divide a imagem em blocos não sobrepostos
+    block_rows = rows // block_size
+    block_cols = cols // block_size
+    blocks = np.zeros((block_rows, block_cols, block_size, block_size))
+
+    for i in range(block_rows):
+        for j in range(block_cols):
+            blocks[i, j, :, :] = channel[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size]
+
+    # Aplica a DCT em cada bloco
+    dct_blocks = np.zeros((block_rows, block_cols, block_size, block_size))
+    for i in range(block_rows):
+        for j in range(block_cols):
+            dct_blocks[i, j, :, :] = dct(dct(blocks[i, j, :, :], norm='ortho').T, norm='ortho').T
+
+    # Concatena os resultados em uma única matriz
+    dct_full = np.zeros((rows, cols))
+    for i in range(block_rows):
+        for j in range(block_cols):
+            dct_full[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size] = dct_blocks[i, j, :, :]
+
+    return dct_full
 
 def idct_block(dct_coeffs, bs):
     """
