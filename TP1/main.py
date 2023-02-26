@@ -3,6 +3,7 @@ import matplotlib.colors as clr
 import numpy as np
 import cv2
 from scipy.fftpack import dct, idct
+from skimage.util import view_as_blocks
 
 
 def encode(nomeFich: str):
@@ -34,15 +35,15 @@ def encode(nomeFich: str):
 
     # Y_dct
     plt.subplot(1, 3, 1)
-    plt.imshow(np.log(np.abs(Y_dct) + 0.0001), cmap=blueMap)
+    plt.imshow(np.log(np.abs(Y_dct) + 0.0001), cmap="gray")
     plt.title("Y_dct")
     # Cb_dct
     plt.subplot(1, 3, 2)
-    plt.imshow(np.log(np.abs(Cb_dct) + 0.0001), cmap=blueMap)
+    plt.imshow(np.log(np.abs(Cb_dct) + 0.0001), cmap="gray")
     plt.title("Cb_dct")
     # Cr_dct
     plt.subplot(1, 3, 3)
-    plt.imshow(np.log(np.abs(Cr_dct) + 0.0001), cmap=blueMap)
+    plt.imshow(np.log(np.abs(Cr_dct) + 0.0001), cmap="gray")
     plt.title("Cr_dct")
 
     plt.show()
@@ -54,6 +55,40 @@ def encode(nomeFich: str):
     cv2.imshow("Y_d", Y_d)
     cv2.imshow("Cb_d", Cb_d)
     cv2.imshow("Cr_d", Cr_d)
+
+    BS = 8
+
+    Y_dct8 = dct_block(Y_d, BS)
+    Cb_dct8 = dct_block(Cb_d, BS)
+    Cr_dct8 = dct_block(Cr_d, BS)
+
+    Y_idct8 = idct_block(Y_dct8, BS)
+    Cb_idct8 = idct_block(Cb_dct8, BS)
+    Cr_idct8 = idct_block(Cr_dct8, BS)
+
+    # Visualização com transformação logarítmica
+    plt.figure(figsize=(10, 10))
+    plt.subplot(231)
+    plt.imshow(np.log(np.abs(Y_dct8) + 0.0001), cmap='gray')
+    plt.title('Y_DCT8')
+    plt.subplot(232)
+    plt.imshow(np.log(np.abs(Cb_dct8) + 0.0001), cmap='gray')
+    plt.title('Cb_DCT8')
+    plt.subplot(233)
+    plt.imshow(np.log(np.abs(Cr_dct8) + 0.0001), cmap='gray')
+    plt.title('Cr_DCT8')
+    plt.show()
+    plt.figure(figsize=(10, 10))
+    plt.subplot(231)
+    plt.imshow(np.log(np.abs(Y_idct8) + 0.0001), cmap='gray')
+    plt.title('Y_iDCT8')
+    plt.subplot(232)
+    plt.imshow(np.log(np.abs(Cb_idct8) + 0.0001), cmap='gray')
+    plt.title('Cb_iDCT8')
+    plt.subplot(233)
+    plt.imshow(np.log(np.abs(Cr_idct8) + 0.0001), cmap='gray')
+    plt.title('Cr_iDCT8')
+    plt.show()
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
 
@@ -231,6 +266,60 @@ def calculate_dct(channel):
 
 def calculate_idct(dct_channel):
     return idct(idct(dct_channel, norm="ortho").T, norm="ortho").T
+
+
+def dct_block(channel, bs):
+    # Check if the channel has the right shape
+    if channel.shape[0] % bs != 0 or channel.shape[1] % bs != 0:
+        raise ValueError(f"Channel shape {channel.shape} is not a multiple of block size {bs}!")
+
+    # Split the channel into blocks
+    blocks = np.split(channel, channel.shape[0] // bs, axis=0)
+    blocks = [np.split(block, channel.shape[1] // bs, axis=1) for block in blocks]
+
+    # Apply DCT to each block
+    dct_blocks = []
+    for row in blocks:
+        dct_row = []
+        for block in row:
+            dct_block = dct(dct(block, norm="ortho").T, norm="ortho").T
+            dct_row.append(dct_block)
+        dct_blocks.append(dct_row)
+
+    # Convert the list of blocks back into a 2D numpy array
+    return np.block(dct_blocks)
+
+
+def idct_block(dct_coeffs, bs):
+    """
+    Applies IDCT to a channel using blocks of size bs x bs.
+
+    Arguments:
+    dct_coeffs -- 2D numpy array representing the DCT coefficients
+    bs -- block size
+
+    Returns:
+    2D numpy array with channel values
+    """
+    # Check if the DCT coefficients have the right shape
+    if dct_coeffs.shape[0] % bs != 0 or dct_coeffs.shape[1] % bs != 0:
+        raise ValueError(f"DCT coefficients shape {dct_coeffs.shape} is not a multiple of block size {bs}!")
+
+    # Split the DCT coefficients into blocks
+    blocks = np.split(dct_coeffs, dct_coeffs.shape[0] // bs, axis=0)
+    blocks = [np.split(block, dct_coeffs.shape[1] // bs, axis=1) for block in blocks]
+
+    # Apply IDCT to each block
+    idct_blocks = []
+    for row in blocks:
+        idct_row = []
+        for block in row:
+            idct_block = idct(idct(block.T, norm="ortho").T, norm="ortho")
+            idct_row.append(idct_block)
+        idct_blocks.append(idct_row)
+
+    # Convert the list of blocks back into a 2D numpy array
+    return np.block(idct_blocks)
 
 
 if __name__ == "__main__":
