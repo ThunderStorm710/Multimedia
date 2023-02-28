@@ -13,7 +13,6 @@ def encode(nomeFich: str):
     # ex 3
     aplicarColorMap(nomeFich)
     colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
-    blueMap = criarColorMap("blue", [(0, 0, 0), (0.0, 0.0, 1.0)])
     aplicarColorMapDado(nomeFich, colormap)
     # ex 4
     padded_image = pad_image(image)
@@ -25,6 +24,10 @@ def encode(nomeFich: str):
     # ex 6
     Y, Cr, Cb = separarCanais(ycbcr_image)
     Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:0")
+
+    cv2.imshow("Y_d", Y_d)
+    cv2.imshow("Cb_d", Cb_d)
+    cv2.imshow("Cr_d", Cr_d)
     # ex 7
     Y_dct = calculate_dct(Y_d)
     Cb_dct = calculate_dct(Cb_d)
@@ -50,10 +53,6 @@ def encode(nomeFich: str):
     Y_idct = calculate_idct(Y_dct)
     Cb_idct = calculate_idct(Cb_dct)
     Cr_idct = calculate_idct(Cr_dct)
-
-    cv2.imshow("Y_d", Y_d)
-    cv2.imshow("Cb_d", Cb_d)
-    cv2.imshow("Cr_d", Cr_d)
 
     BS = 8
 
@@ -89,6 +88,39 @@ def encode(nomeFich: str):
     plt.title('Cr_iDCT8')
     plt.show()
 
+    QY = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
+                   [12, 12, 14, 19, 26, 58, 60, 55],
+                   [14, 13, 16, 24, 40, 57, 69, 56],
+                   [14, 17, 22, 29, 51, 87, 80, 62],
+                   [18, 22, 37, 56, 68, 109, 103, 77],
+                   [24, 35, 55, 64, 81, 104, 113, 92],
+                   [49, 64, 78, 87, 103, 121, 120, 101],
+                   [72, 92, 95, 98, 112, 100, 103, 99]])
+
+    # Tabela de quantização para crominância (CbCr)
+    QC = np.array([[17, 18, 24, 47, 99, 99, 99, 99],
+                   [18, 21, 26, 66, 99, 99, 99, 99],
+                   [24, 26, 56, 99, 99, 99, 99, 99],
+                   [47, 66, 99, 99, 99, 99, 99, 99],
+                   [99, 99, 99, 99, 99, 99, 99, 99],
+                   [99, 99, 99, 99, 99, 99, 99, 99],
+                   [99, 99, 99, 99, 99, 99, 99, 99],
+                   [99, 99, 99, 99, 99, 99, 99, 99]])
+
+    # Quantiza a imagem utilizando a matriz de quantização
+    matriz = quantization_matrix(75)
+    quantized_img = quantize_image(Y_dct8, matriz)
+
+    cv2.imshow("Y", quantized_img)
+
+    quantized_img = quantize_image(Cb_dct8, QC)
+    cv2.imshow("Cb", quantized_img)
+
+    quantized_img = quantize_image(Cr_dct8, QC)
+    cv2.imshow("Cr", quantized_img)
+
+
+
     BS = 64
 
     Y_dct8 = dct2d_blocks(Y_d, BS)
@@ -107,6 +139,7 @@ def encode(nomeFich: str):
     plt.imshow(np.log(np.abs(Cr_dct8) + 0.0001), cmap='gray')
     plt.title('Cr_DCT8')
     plt.show()
+
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
 
@@ -334,6 +367,7 @@ def dct2d_blocks(channel, block_size):
 
     return dct_full
 
+
 def idct_block(dct_coeffs, bs):
     """
     Applies IDCT to a channel using blocks of size bs x bs.
@@ -364,6 +398,121 @@ def idct_block(dct_coeffs, bs):
 
     # Convert the list of blocks back into a 2D numpy array
     return np.block(idct_blocks)
+
+
+def quantize_block(block, quantization_matrix):
+    return np.round(np.divide(block, quantization_matrix))
+
+
+def quantize_image(img, quantization_matrix):
+    """
+    Quantiza todos os blocos 8x8 de uma imagem utilizando uma matriz de quantização.
+
+    Args:
+        img: array numpy 2D com a imagem.
+        quantization_matrix: array numpy 2D de shape (8, 8) com a matriz de quantização.
+
+    Returns:
+        Um novo array numpy 2D com a imagem quantizada.
+    """
+    # Calcula o tamanho da imagem
+    height, width = img.shape[:2]
+
+    # Cria um array vazio para armazenar a imagem quantizada
+    quantized_img = np.zeros((height, width))
+
+    # Loop que percorre a imagem em blocos de tamanho 8x8
+    for y in range(0, height, 8):
+        for x in range(0, width, 8):
+            # Seleciona um bloco 8x8 da imagem
+            block = img[y:y + 8, x:x + 8]
+
+            # Quantiza o bloco utilizando a matriz de quantização
+            quantized_block = quantize_block(block, quantization_matrix)
+
+            # Armazena o bloco quantizado na imagem final
+            quantized_img[y:y + 8, x:x + 8] = quantized_block
+
+    # Retorna a imagem quantizada
+    return quantized_img
+
+
+def quantize_dct(dct_block, quality_factor=50):
+    quantization_table = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
+                                   [12, 12, 14, 19, 26, 58, 60, 55],
+                                   [14, 13, 16, 24, 40, 57, 69, 56],
+                                   [14, 17, 22, 29, 51, 87, 80, 62],
+                                   [18, 22, 37, 56, 68, 109, 103, 77],
+                                   [24, 35, 55, 64, 81, 104, 113, 92],
+                                   [49, 64, 78, 87, 103, 121, 120, 101],
+                                   [72, 92, 95, 98, 112, 100, 103, 99]])
+    if quality_factor < 1:
+        quality_factor = 1
+    if quality_factor > 99:
+        quality_factor = 99
+    if quality_factor < 50:
+        scale = 5000 / quality_factor
+    else:
+        scale = 200 - 2 * quality_factor
+    quantization_matrix = ((scale * quantization_table) + 50) // 100
+    quantization_matrix[quantization_matrix == 0] = 1
+    quantized_dct_block = np.round(dct_block / quantization_matrix)
+    return quantized_dct_block, quantization_matrix
+
+
+def inverse_quantize_dct(quantized_dct_block, quantization_matrix):
+    return quantized_dct_block * quantization_matrix
+
+
+def quantization_matrix(quality):
+    """
+    Retorna uma matriz de quantização para um determinado fator de qualidade.
+
+    Args:
+        quality: inteiro que representa o fator de qualidade desejado (entre 1 e 100).
+
+    Returns:
+        Um array numpy 2D com a matriz de quantização.
+    """
+    # Define a matriz de quantização padrão
+    base_matrix = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
+                            [12, 12, 14, 19, 26, 58, 60, 55],
+                            [14, 13, 16, 24, 40, 57, 69, 56],
+                            [14, 17, 22, 29, 51, 87, 80, 62],
+                            [18, 22, 37, 56, 68, 109, 103, 77],
+                            [24, 35, 55, 64, 81, 104, 113, 92],
+                            [49, 64, 78, 87, 103, 121, 120, 101],
+                            [72, 92, 95, 98, 112, 100, 103, 99]])
+
+    # Verifica se o fator de qualidade é válido
+    if quality < 1:
+        quality = 1
+    elif quality > 100:
+        quality = 100
+
+    # Calcula o fator de escala
+    if quality < 50:
+        scale = 5000 / quality
+    else:
+        scale = 200 - 2 * quality
+
+    # Multiplica a matriz de quantização padrão pelo fator de escala
+    quant_matrix = np.floor((scale * base_matrix + 50) / 100)
+
+    # Verifica se algum elemento da matriz de quantização é zero
+    # e ajusta para evitar divisão por zero
+    quant_matrix[quant_matrix == 0] = 1
+
+    # Retorna a matriz de quantização
+    return quant_matrix
+
+
+def quantize(block, q_table):
+    return np.round(block / q_table)
+
+
+def dequantize(block, q_table):
+    return block * q_table
 
 
 if __name__ == "__main__":
