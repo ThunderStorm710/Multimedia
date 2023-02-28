@@ -77,14 +77,17 @@ def encode(nomeFich: str):
 
     cv2.imshow("Y_Q", quantized_img)
 
-    quantized_img = quantize_image(Cb_dct8, QCbCr)
+    quantized_img1 = quantize_image(Cb_dct8, QCbCr)
     cv2.imshow("Cb_Q", quantized_img)
 
-    quantized_img = quantize_image(Cr_dct8, QCbCr)
+    quantized_img2 = quantize_image(Cr_dct8, QCbCr)
     cv2.imshow("Cr_Q", quantized_img)
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 9 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
+    img = codificar_dc_dpcm([quantized_img, quantized_img1, quantized_img2])
+    cv2.imshow("Y_DCPM", img[0])
+
 
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 

@@ -409,3 +409,12 @@ def quantization_matrix(quality):
 
     # Retorna a matriz de quantização
     return quant_matrix
+
+def codificar_dc_dpcm(coefs_dc):
+    dc_anterior = 0
+    coefs_codificados = []
+    for dc_atual in coefs_dc:
+        diferenca = dc_atual - dc_anterior
+        coefs_codificados.append(diferenca)
+        dc_anterior = dc_atual
+    return coefs_codificados
