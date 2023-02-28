@@ -205,6 +205,32 @@ def calculate_idct(dct_channel):
     return idct(idct(dct_channel, norm="ortho").T, norm="ortho").T
 
 
+def dct_bloco(imagem, BS):
+    altura, largura = imagem.shape
+    coefs = np.zeros((altura, largura))
+
+    for y in range(0, altura, BS):
+        for x in range(0, largura, BS):
+            bloco = imagem[y:y + BS, x:x + BS]
+            bloco_dct = dct(dct(bloco, norm="ortho").T, norm="ortho").T
+            coefs[y:y + BS, x:x + BS] = bloco_dct
+
+    return coefs
+
+
+def idct_bloco(coefs, BS):
+    altura, largura = coefs.shape
+    imagem = np.zeros((altura, largura))
+
+    for y in range(0, altura, BS):
+        for x in range(0, largura, BS):
+            bloco_coefs = coefs[y:y + BS, x:x + BS]
+            bloco_idct = idct(idct(bloco_coefs, norm="ortho").T, norm="ortho").T
+            imagem[y:y + BS, x:x + BS] = bloco_idct
+
+    return imagem
+
+
 def dct_block(channel, bs):
     if channel.shape[0] % bs != 0 or channel.shape[1] % bs != 0:
         raise ValueError(f"Channel shape {channel.shape} is not a multiple of block size {bs}!")

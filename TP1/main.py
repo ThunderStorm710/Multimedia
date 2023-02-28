@@ -50,13 +50,13 @@ def encode(nomeFich: str):
 
     BS = 8
 
-    Y_dct8 = dct_block(Y_d, BS)
-    Cb_dct8 = dct_block(Cb_d, BS)
-    Cr_dct8 = dct_block(Cr_d, BS)
+    Y_dct8 = dct_bloco(Y_d, BS)
+    Cb_dct8 = dct_bloco(Cb_d, BS)
+    Cr_dct8 = dct_bloco(Cr_d, BS)
 
-    Y_idct8 = idct_block(Y_dct8, BS)
-    Cb_idct8 = idct_block(Cb_dct8, BS)
-    Cr_idct8 = idct_block(Cr_dct8, BS)
+    Y_idct8 = idct_bloco(Y_dct8, BS)
+    Cb_idct8 = idct_bloco(Cb_dct8, BS)
+    Cr_idct8 = idct_bloco(Cr_dct8, BS)
 
     visualizarConjuntoImagens(Y_dct8, Cb_dct8, Cr_dct8, ["Y_dct8", "Cb_dct8", "Cr_dct8"], 'off', True)
 
@@ -64,9 +64,9 @@ def encode(nomeFich: str):
 
     BS = 64
 
-    Y_dct64 = dct2d_blocks(Y_d, BS)
-    Cb_dct64 = dct2d_blocks(Cb_d, BS)
-    Cr_dct64 = dct2d_blocks(Cr_d, BS)
+    Y_dct64 = dct_bloco(Y_d, BS)
+    Cb_dct64 = dct_bloco(Cb_d, BS)
+    Cr_dct64 = dct_bloco(Cr_d, BS)
 
     visualizarConjuntoImagens(Y_dct64, Cb_dct64, Cr_dct64, ["Y_dct64", "Cb_dct64", "Cr_dct64"], 'off', True)
     '''--------------------------------------------------------------------------------------------------------------'''
