@@ -5,7 +5,8 @@ def encode(nomeFich: str):
     if not nomeFich:
         return None
     image = plt.imread(nomeFich)
-    visualizarImagem(image, nomeFich, "off")
+    #visualizarImagem(image, nomeFich, "off")
+
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 3 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
@@ -17,12 +18,12 @@ def encode(nomeFich: str):
     '''----------------------------------------------- EX 4 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
     padded_image = pad_image(image)
-    visualizarImagem(padded_image, "PADDED IMAGE", "off")
+    #visualizarImagem(padded_image, "PADDED IMAGE", "off")
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 5 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
     ycbcr_image = rgb_para_ycbcr(padded_image)
-    visualizarImagem(ycbcr_image, "RGB para YCbCr", "off")
+    #visualizarImagem(ycbcr_image, "RGB para YCbCr", "off")
     verYCbCr(ycbcr_image)
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 6 ---------------------------------------------------------'''
@@ -30,9 +31,9 @@ def encode(nomeFich: str):
     Y, Cr, Cb = separarCanais(ycbcr_image)
     Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:0")
 
-    cv2.imshow("Y_d", Y_d)
-    cv2.imshow("Cb_d", Cb_d)
-    cv2.imshow("Cr_d", Cr_d)
+    #cv2.imshow("Y_d", Y_d)
+    #cv2.imshow("Cb_d", Cb_d)
+    #cv2.imshow("Cr_d", Cr_d)
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 7 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
@@ -72,22 +73,33 @@ def encode(nomeFich: str):
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 8 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
-    matriz = quantization_matrix(75)
-    quantized_img = quantize_image(Y_dct8, matriz)
+    matrizY = quantization_matrix(QY, 75)
+    matrizCbCr = quantization_matrix(QCbCr, 75)
+    quantized_img = quantize_image(Y_dct8, matrizY)
 
     cv2.imshow("Y_Q", quantized_img)
 
-    quantized_img1 = quantize_image(Cb_dct8, QCbCr)
-    cv2.imshow("Cb_Q", quantized_img)
+    quantized_img1 = quantize_image(Cb_dct8, matrizCbCr)
+    cv2.imshow("Cb_Q", quantized_img1)
 
-    quantized_img2 = quantize_image(Cr_dct8, QCbCr)
-    cv2.imshow("Cr_Q", quantized_img)
+    quantized_img2 = quantize_image(Cr_dct8, matrizCbCr)
+    cv2.imshow("Cr_Q", quantized_img2)
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 9 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
-    img = codificar_dc_dpcm([quantized_img, quantized_img1, quantized_img2])
-    cv2.imshow("Y_DCPM", img[0])
+    difY, Y_dcpm = dpcm_dc(quantized_img, 8)
+    cv2.imshow("Y_DCPM", Y_dcpm)
+    difCb, Cb_dcpm = dpcm_dc(quantized_img1, 8)
+    cv2.imshow("Cb_DCPM", Cb_dcpm)
+    difCr, Cr_dcpm = dpcm_dc(quantized_img2, 8)
+    cv2.imshow("Cr_DCPM", Cr_dcpm)
 
+    Y_idcpm = idpcm_dc(Y_dcpm)
+    cv2.imshow("Y_iDCPM", Y_idcpm)
+    Cb_idcpm = idpcm_dc(Cb_dcpm)
+    cv2.imshow("Cb_iDCPM", Cb_idcpm)
+    Cr_idcpm = idpcm_dc(Cr_dcpm)
+    cv2.imshow("Cr_iDCPM", Cr_idcpm)
 
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
@@ -95,21 +107,17 @@ def encode(nomeFich: str):
 def decode(imagemOriginal, imagemPadding, imagemYCbCr, Y_d, Cb_d, Cr_d):
     # ex 4
     unpadded_image = unpad_image(imagemPadding, imagemOriginal)
-    visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
+    #visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
     # ex 5
     rgb_image = ycbcr_para_rgb(imagemYCbCr)
-    visualizarImagem(rgb_image, "YCbCr para RGB", "off")
+    #visualizarImagem(rgb_image, "YCbCr para RGB", "off")
     print(f"Imagem Original --> Valor do pixel [0,0]: {imagemOriginal[0][0]}")
     print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
     # ex 6
     Y_u, Cb_u, Cr_u = reconstrucao(Y_d, Cb_d, Cr_d)
-    cv2.imshow("Y_u", Y_u)
-    cv2.imshow("Cb_u", Cb_u)
-    cv2.imshow("Cr_u", Cr_u)
-    img_reconstruida = cv2.merge((Y_u, Cr_u, Cb_u))
-
-    # Exibe a imagem reconstruída
-    cv2.imshow('Imagem reconstruída', img_reconstruida)
+    #cv2.imshow("Y_u", Y_u)
+    #cv2.imshow("Cb_u", Cb_u)
+    #cv2.imshow("Cr_u", Cr_u)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

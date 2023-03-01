@@ -368,26 +368,7 @@ def quantize_dct(dct_block, quality_factor=50):
     return quantized_dct_block, quantization_matrix
 
 
-def quantization_matrix(quality):
-    """
-    Retorna uma matriz de quantização para um determinado fator de qualidade.
-
-    Args:
-        quality: inteiro que representa o fator de qualidade desejado (entre 1 e 100).
-
-    Returns:
-        Um array numpy 2D com a matriz de quantização.
-    """
-    # Define a matriz de quantização padrão
-    base_matrix = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
-                            [12, 12, 14, 19, 26, 58, 60, 55],
-                            [14, 13, 16, 24, 40, 57, 69, 56],
-                            [14, 17, 22, 29, 51, 87, 80, 62],
-                            [18, 22, 37, 56, 68, 109, 103, 77],
-                            [24, 35, 55, 64, 81, 104, 113, 92],
-                            [49, 64, 78, 87, 103, 121, 120, 101],
-                            [72, 92, 95, 98, 112, 100, 103, 99]])
-
+def quantization_matrix(base_matrix, quality):
     # Verifica se o fator de qualidade é válido
     if quality < 1:
         quality = 1
@@ -410,11 +391,64 @@ def quantization_matrix(quality):
     # Retorna a matriz de quantização
     return quant_matrix
 
-def codificar_dc_dpcm(coefs_dc):
+
+def dpcm_dc(coefs, BS):
+    altura, largura = coefs.shape
+    difs = np.zeros((altura // BS, largura // BS))
     dc_anterior = 0
-    coefs_codificados = []
-    for dc_atual in coefs_dc:
-        diferenca = dc_atual - dc_anterior
-        coefs_codificados.append(diferenca)
-        dc_anterior = dc_atual
-    return coefs_codificados
+
+    for y in range(0, altura, BS):
+        for x in range(0, largura, BS):
+            bloco = coefs[y:y + BS, x:x + BS]
+            dc = bloco[0, 0]
+            dif = dc - dc_anterior
+            bloco[0, 0] = dif
+            difs[y // BS, x // BS] = dif
+            dc_anterior = dc
+
+    return difs, coefs
+
+
+'''
+def idpcm_dc(difs, BS):
+    altura, largura = difs.shape
+    coefs = np.zeros((altura * BS, largura * BS))
+    dc_anterior = 0
+
+    for y in range(0, altura * BS, BS):
+        for x in range(0, largura * BS, BS):
+            dif = difs[y // BS, x // BS]
+            dc = dif + dc_anterior
+            bloco = coefs[y:y + BS, x:x + BS]
+            bloco[0, 0] = dc
+            dc_anterior = dc
+
+    return coefs
+'''
+
+
+def idpcm_dc(coefs_dpcm):
+    altura, largura = coefs_dpcm.shape
+    coefs_idpcm = coefs_dpcm.copy()
+
+    # Valor DC do primeiro bloco é o valor DC do primeiro pixel
+    dc_ant = coefs_idpcm[0, 0]
+
+    idx = 0
+    for y in range(0, altura, 8):
+        for x in range(0, largura, 8):
+            bloco_coefs = coefs_idpcm[y:y + 8, x:x + 8]
+
+            # Reconstrói o valor DC do bloco atual
+            diff = coefs_dpcm[idx]
+            dc_atual = dc_ant + diff
+
+            # Substitui a diferença pelo valor DC reconstruído
+            bloco_coefs[0, 0] = dc_atual
+
+            # Atualiza o valor DC anterior para o valor DC atual
+            dc_ant = dc_atual
+
+            idx += 1
+
+    return coefs_idpcm
