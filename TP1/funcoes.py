@@ -427,31 +427,41 @@ def idpcm_dc(difs, BS):
 '''
 
 
-def idpcm_dc(coefs_dpcm):
-    coefs_decoded = np.zeros_like(coefs_dpcm)
+def idpcm_dc(coefs_dpcm, altura, largura):
+    coefs_decod = np.zeros((altura, largura))
 
-    altura, largura = coefs_dpcm.shape
-    coefs_decoded[0, 0] = coefs_dpcm[0, 0]
+    # Valor DC do primeiro bloco é o primeiro valor da matriz
+    dc_ant = coefs_dpcm[0]
+    coefs_decod[0, 0] = dc_ant
 
-    # Valor DC decodificado do primeiro bloco é o primeiro valor da lista de diferenças
-    dc_ant = coefs_dpcm[0, 0]
+    idx = 1
 
-    i = 0
     for y in range(0, altura, 8):
         for x in range(0, largura, 8):
-            bloco_decoded = coefs_decoded[y:y+8, x:x+8]
+            bloco_decod = np.zeros((8, 8))
 
-            # Decodifica o valor DC
-            dc_decoded = dc_ant + coefs_dpcm[i]
+            # Subtrai a diferença do valor DC do bloco anterior
+            dc_decod = dc_ant - coefs_dpcm[-idx]
 
-            # Substitui o valor codificado pela soma
-            bloco_decoded[0, 0] = dc_decoded
+            # Substitui o valor DC do bloco atual pelo valor decodificado
+            bloco_decod[0, 0] = dc_decod
 
-            # Atualiza o valor DC anterior para o valor DC decodificado atual
-            dc_ant = dc_decoded
+            # Decodifica os demais coeficientes do bloco
+            for i in range(1, 8):
+                for j in range(8):
+                    bloco_decod[i, j] = coefs_dpcm[-idx+i*8+j]
 
-            i += 1
+            # Aplica a IDCT ao bloco decodificado
+            bloco_idct = calculate_idct(bloco_decod)
 
-    return coefs_decoded
+            # Armazena o bloco decodificado na matriz decodificada
+            coefs_decod[y:y+8, x:x+8] = bloco_idct
+
+            # Atualiza o valor DC anterior para o valor DC atual
+            dc_ant = dc_decod
+
+            idx += 1
+
+    return coefs_decod
 
 
