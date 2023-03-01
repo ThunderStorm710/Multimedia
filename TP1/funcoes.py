@@ -428,27 +428,30 @@ def idpcm_dc(difs, BS):
 
 
 def idpcm_dc(coefs_dpcm):
+    coefs_decoded = np.zeros_like(coefs_dpcm)
+
     altura, largura = coefs_dpcm.shape
-    coefs_idpcm = coefs_dpcm.copy()
+    coefs_decoded[0, 0] = coefs_dpcm[0, 0]
 
-    # Valor DC do primeiro bloco é o valor DC do primeiro pixel
-    dc_ant = coefs_idpcm[0, 0]
+    # Valor DC decodificado do primeiro bloco é o primeiro valor da lista de diferenças
+    dc_ant = coefs_dpcm[0, 0]
 
-    idx = 0
+    i = 0
     for y in range(0, altura, 8):
         for x in range(0, largura, 8):
-            bloco_coefs = coefs_idpcm[y:y + 8, x:x + 8]
+            bloco_decoded = coefs_decoded[y:y+8, x:x+8]
 
-            # Reconstrói o valor DC do bloco atual
-            diff = coefs_dpcm[idx]
-            dc_atual = dc_ant + diff
+            # Decodifica o valor DC
+            dc_decoded = dc_ant + coefs_dpcm[i]
 
-            # Substitui a diferença pelo valor DC reconstruído
-            bloco_coefs[0, 0] = dc_atual
+            # Substitui o valor codificado pela soma
+            bloco_decoded[0, 0] = dc_decoded
 
-            # Atualiza o valor DC anterior para o valor DC atual
-            dc_ant = dc_atual
+            # Atualiza o valor DC anterior para o valor DC decodificado atual
+            dc_ant = dc_decoded
 
-            idx += 1
+            i += 1
 
-    return coefs_idpcm
+    return coefs_decoded
+
+
