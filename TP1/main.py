@@ -94,12 +94,13 @@ def encode(nomeFich: str):
     difCr, Cr_dcpm = dpcm_dc(quantized_img2, 8)
     cv2.imshow("Cr_DCPM", Cr_dcpm)
 
-    Y_idcpm = dpcm_dc_inv(Y_dcpm)
-    cv2.imshow("Y_iDCPM", Y_idcpm)
-    Cb_idcpm = dpcm_dc_inv(Cb_dcpm)
-    cv2.imshow("Cb_iDCPM", Cb_idcpm)
-    Cr_idcpm = dpcm_dc_inv(Cr_dcpm)
-    cv2.imshow("Cr_iDCPM", Cr_idcpm)
+    Y_idcpm = decode_dc_coefficients(Y_dcpm)
+    visualizarImagem(Y_idcpm, "Y_iDCPM", "off")
+    #cv2.imshow("Y_iDCPM", Y_idcpm)
+    #Cb_idcpm = dpcm_dc_inv(Cb_dcpm)
+    #cv2.imshow("Cb_iDCPM", Cb_idcpm)
+    #Cr_idcpm = dpcm_dc_inv(Cr_dcpm)
+    #cv2.imshow("Cr_iDCPM", Cr_idcpm)
 
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 

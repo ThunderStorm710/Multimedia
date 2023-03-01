@@ -465,3 +465,22 @@ def idpcm_dc(coefs_dpcm, altura, largura):
     return coefs_decod
 
 
+def decode_dc_coefficients(diff_dc_coefficients):
+    """
+    Decodifica os coeficientes DC de cada bloco utilizando DPCM.
+    Recupera os valores originais dos coeficientes DC a partir das diferenças codificadas.
+
+    Args:
+        diff_dc_coefficients: uma lista de valores das diferenças dos coeficientes DC.
+
+    Returns:
+        Uma lista de blocos contendo os valores originais dos coeficientes DC.
+    """
+    dc_coefficients = []
+    previous_dc = 0
+    for diff in diff_dc_coefficients:
+        dc = previous_dc + diff
+        dc_coefficients.append(dc)
+        previous_dc = dc
+    return dc_coefficients
+
