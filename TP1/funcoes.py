@@ -231,164 +231,38 @@ def idct_bloco(coefs, BS):
     return imagem
 
 
-def dct_block(channel, bs):
-    if channel.shape[0] % bs != 0 or channel.shape[1] % bs != 0:
-        raise ValueError(f"Channel shape {channel.shape} is not a multiple of block size {bs}!")
-
-    blocks = np.split(channel, channel.shape[0] // bs, axis=0)
-    blocks = [np.split(block, channel.shape[1] // bs, axis=1) for block in blocks]
-
-    dct_blocks = []
-    for row in blocks:
-        dct_row = []
-        for block in row:
-            dct_block = dct(dct(block, norm="ortho").T, norm="ortho").T
-            dct_row.append(dct_block)
-        dct_blocks.append(dct_row)
-
-    return np.block(dct_blocks)
-
-
-def dct2d_blocks(channel, block_size):
-    rows, cols = channel.shape
-
-    # Divide a imagem em blocos não sobrepostos
-    block_rows = rows // block_size
-    block_cols = cols // block_size
-    blocks = np.zeros((block_rows, block_cols, block_size, block_size))
-
-    for i in range(block_rows):
-        for j in range(block_cols):
-            blocks[i, j, :, :] = channel[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size]
-
-    # Aplica a DCT em cada bloco
-    dct_blocks = np.zeros((block_rows, block_cols, block_size, block_size))
-    for i in range(block_rows):
-        for j in range(block_cols):
-            dct_blocks[i, j, :, :] = dct(dct(blocks[i, j, :, :], norm='ortho').T, norm='ortho').T
-
-    # Concatena os resultados em uma única matriz
-    dct_full = np.zeros((rows, cols))
-    for i in range(block_rows):
-        for j in range(block_cols):
-            dct_full[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size] = dct_blocks[i, j, :, :]
-
-    return dct_full
-
-
-def idct_block(dct_coeffs, bs):
-    """
-    Applies IDCT to a channel using blocks of size bs x bs.
-
-    Arguments:
-    dct_coeffs -- 2D numpy array representing the DCT coefficients
-    bs -- block size
-
-    Returns:
-    2D numpy array with channel values
-    """
-    # Check if the DCT coefficients have the right shape
-    if dct_coeffs.shape[0] % bs != 0 or dct_coeffs.shape[1] % bs != 0:
-        raise ValueError(f"DCT coefficients shape {dct_coeffs.shape} is not a multiple of block size {bs}!")
-
-    # Split the DCT coefficients into blocks
-    blocks = np.split(dct_coeffs, dct_coeffs.shape[0] // bs, axis=0)
-    blocks = [np.split(block, dct_coeffs.shape[1] // bs, axis=1) for block in blocks]
-
-    # Apply IDCT to each block
-    idct_blocks = []
-    for row in blocks:
-        idct_row = []
-        for block in row:
-            idct_block = idct(idct(block.T, norm="ortho").T, norm="ortho")
-            idct_row.append(idct_block)
-        idct_blocks.append(idct_row)
-
-    # Convert the list of blocks back into a 2D numpy array
-    return np.block(idct_blocks)
-
-
 def quantize_block(block, quantization_matrix):
     return np.round(np.divide(block, quantization_matrix))
 
 
 def quantize_image(img, quantization_matrix):
-    """
-    Quantiza todos os blocos 8x8 de uma imagem utilizando uma matriz de quantização.
-
-    Args:
-        img: array numpy 2D com a imagem.
-        quantization_matrix: array numpy 2D de shape (8, 8) com a matriz de quantização.
-
-    Returns:
-        Um novo array numpy 2D com a imagem quantizada.
-    """
-    # Calcula o tamanho da imagem
     height, width = img.shape[:2]
 
-    # Cria um array vazio para armazenar a imagem quantizada
     quantized_img = np.zeros((height, width))
 
-    # Loop que percorre a imagem em blocos de tamanho 8x8
     for y in range(0, height, 8):
         for x in range(0, width, 8):
-            # Seleciona um bloco 8x8 da imagem
             block = img[y:y + 8, x:x + 8]
-
-            # Quantiza o bloco utilizando a matriz de quantização
             quantized_block = quantize_block(block, quantization_matrix)
-
-            # Armazena o bloco quantizado na imagem final
             quantized_img[y:y + 8, x:x + 8] = quantized_block
-
-    # Retorna a imagem quantizada
     return quantized_img
 
 
-def quantize_dct(dct_block, quality_factor=50):
-    quantization_table = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
-                                   [12, 12, 14, 19, 26, 58, 60, 55],
-                                   [14, 13, 16, 24, 40, 57, 69, 56],
-                                   [14, 17, 22, 29, 51, 87, 80, 62],
-                                   [18, 22, 37, 56, 68, 109, 103, 77],
-                                   [24, 35, 55, 64, 81, 104, 113, 92],
-                                   [49, 64, 78, 87, 103, 121, 120, 101],
-                                   [72, 92, 95, 98, 112, 100, 103, 99]])
-    if quality_factor < 1:
-        quality_factor = 1
-    if quality_factor > 99:
-        quality_factor = 99
-    if quality_factor < 50:
-        scale = 5000 / quality_factor
-    else:
-        scale = 200 - 2 * quality_factor
-    quantization_matrix = ((scale * quantization_table) + 50) // 100
-    quantization_matrix[quantization_matrix == 0] = 1
-    quantized_dct_block = np.round(dct_block / quantization_matrix)
-    return quantized_dct_block, quantization_matrix
-
-
 def quantization_matrix(base_matrix, quality):
-    # Verifica se o fator de qualidade é válido
     if quality < 1:
         quality = 1
     elif quality > 100:
         quality = 100
 
-    # Calcula o fator de escala
     if quality < 50:
         scale = 5000 / quality
     else:
         scale = 200 - 2 * quality
 
-    # Multiplica a matriz de quantização padrão pelo fator de escala
     quant_matrix = np.floor((scale * base_matrix + 50) / 100)
 
-    # Verifica se algum elemento da matriz de quantização é zero
-    # e ajusta para evitar divisão por zero
     quant_matrix[quant_matrix == 0] = 1
 
-    # Retorna a matriz de quantização
     return quant_matrix
 
 
@@ -407,7 +281,6 @@ def dpcm_dc(coefs, BS):
             dc_anterior = dc
 
     return difs, coefs
-
 
 
 def idpcm_dc(difs, BS):

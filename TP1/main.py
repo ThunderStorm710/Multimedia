@@ -29,7 +29,7 @@ def encode(nomeFich: str):
     '''----------------------------------------------- EX 6 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
     Y, Cr, Cb = separarCanais(ycbcr_image)
-    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:0")
+    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:2")
 
     # cv2.imshow("Y_d", Y_d)
     # cv2.imshow("Cb_d", Cb_d)
@@ -43,31 +43,17 @@ def encode(nomeFich: str):
 
     visualizarConjuntoImagens(Y_dct, Cb_dct, Cr_dct, ["Y_dct", "Cb_dct", "Cr_dct"], 'off', True)
 
-    Y_idct = calculate_idct(Y_dct)
-    Cb_idct = calculate_idct(Cb_dct)
-    Cr_idct = calculate_idct(Cr_dct)
 
-    visualizarConjuntoImagens(Y_idct, Cb_idct, Cr_idct, ["Y_idct", "Cb_idct", "Cr_idct"], 'off', True)
+    Y_dct8 = dct_bloco(Y_d, 8)
+    Cb_dct8 = dct_bloco(Cb_d, 8)
+    Cr_dct8 = dct_bloco(Cr_d, 8)
 
-    BS = 8
-
-    Y_dct8 = dct_bloco(Y_d, BS)
-    Cb_dct8 = dct_bloco(Cb_d, BS)
-    Cr_dct8 = dct_bloco(Cr_d, BS)
-
-    Y_idct8 = idct_bloco(Y_dct8, BS)
-    Cb_idct8 = idct_bloco(Cb_dct8, BS)
-    Cr_idct8 = idct_bloco(Cr_dct8, BS)
 
     visualizarConjuntoImagens(Y_dct8, Cb_dct8, Cr_dct8, ["Y_dct8", "Cb_dct8", "Cr_dct8"], 'off', True)
 
-    visualizarConjuntoImagens(Y_idct8, Cb_idct8, Cr_idct8, ["Y_idct8", "Cb_idct8", "Cr_idct8"], 'off', True)
-
-    BS = 64
-
-    Y_dct64 = dct_bloco(Y_d, BS)
-    Cb_dct64 = dct_bloco(Cb_d, BS)
-    Cr_dct64 = dct_bloco(Cr_d, BS)
+    Y_dct64 = dct_bloco(Y_d, 64)
+    Cb_dct64 = dct_bloco(Cb_d, 64)
+    Cr_dct64 = dct_bloco(Cr_d, 64)
 
     visualizarConjuntoImagens(Y_dct64, Cb_dct64, Cr_dct64, ["Y_dct64", "Cb_dct64", "Cr_dct64"], 'off', True)
     '''--------------------------------------------------------------------------------------------------------------'''
@@ -94,17 +80,12 @@ def encode(nomeFich: str):
     difCr, Cr_dcpm = dpcm_dc(quantized_img2, 8)
     cv2.imshow("Cr_DCPM", Cr_dcpm)
 
-    Y_idcpm = idpcm_dc(difY, 8)
-    cv2.imshow("Y_iDCPM", Y_idcpm)
-    Cb_idcpm = idpcm_dc(difCb, 8)
-    cv2.imshow("Cb_iDCPM", Cb_idcpm)
-    Cr_idcpm = idpcm_dc(difCr, 8)
-    cv2.imshow("Cr_iDCPM", Cr_idcpm)
-
-    return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
 
-def decode(imagemOriginal, imagemPadding, imagemYCbCr, Y_d, Cb_d, Cr_d):
+    return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d, Y_dct, Cb_dct, Cr_dct, Y_dct8, Cb_dct8, Cr_dct8, difY, difCb, difCr
+
+
+def decode(imagemOriginal, imagemPadding, imagemYCbCr, Y_d, Cb_d, Cr_d, Y_dct, Cb_dct, Cr_dct, Y_dct8, Cb_dct8, Cr_dct8, difY, difCb, difCr):
     # ex 4
     unpadded_image = unpad_image(imagemPadding, imagemOriginal)
     # visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
@@ -118,11 +99,37 @@ def decode(imagemOriginal, imagemPadding, imagemYCbCr, Y_d, Cb_d, Cr_d):
     # cv2.imshow("Y_u", Y_u)
     # cv2.imshow("Cb_u", Cb_u)
     # cv2.imshow("Cr_u", Cr_u)
+    Y_idct = calculate_idct(Y_dct)
+    Cb_idct = calculate_idct(Cb_dct)
+    Cr_idct = calculate_idct(Cr_dct)
+
+    visualizarConjuntoImagens(Y_idct, Cb_idct, Cr_idct, ["Y_idct", "Cb_idct", "Cr_idct"], 'off', True)
+
+    Y_idct8 = idct_bloco(Y_dct8, 8)
+    Cb_idct8 = idct_bloco(Cb_dct8, 8)
+    Cr_idct8 = idct_bloco(Cr_dct8, 8)
+    visualizarConjuntoImagens(Y_idct8, Cb_idct8, Cr_idct8, ["Y_idct8", "Cb_idct8", "Cr_idct8"], 'off', True)
+
+
+
+
+
+    Y_idcpm = idpcm_dc(difY, 8)
+    cv2.imshow("Y_iDCPM", Y_idcpm)
+    Cb_idcpm = idpcm_dc(difCb, 8)
+    cv2.imshow("Cb_iDCPM", Cb_idcpm)
+    Cr_idcpm = idpcm_dc(difCr, 8)
+    cv2.imshow("Cr_iDCPM", Cr_idcpm)
+
+
+
+
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     plt.close('all')
-    original, padded, ycbcr, Y_d, Cb_d, Cr_d = encode("imagens/barn_mountains.bmp")
-    decode(original, padded, ycbcr, Y_d, Cb_d, Cr_d)
+    original, padded, ycbcr, Y_d, Cb_d, Cr_d, Y_dct, Cb_dct, Cr_dct, Y_dct8, Cb_dct8, Cr_dct8, difY, difCb, difCr = encode("imagens/barn_mountains.bmp")
+    decode(original, padded, ycbcr, Y_d, Cb_d, Cr_d, Y_dct, Cb_dct, Cr_dct, Y_dct8, Cb_dct8, Cr_dct8, difY, difCb, difCr)
