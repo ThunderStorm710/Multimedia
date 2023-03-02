@@ -409,7 +409,7 @@ def dpcm_dc(coefs, BS):
     return difs, coefs
 
 
-'''
+
 def idpcm_dc(difs, BS):
     altura, largura = difs.shape
     coefs = np.zeros((altura * BS, largura * BS))
@@ -421,66 +421,6 @@ def idpcm_dc(difs, BS):
             dc = dif + dc_anterior
             bloco = coefs[y:y + BS, x:x + BS]
             bloco[0, 0] = dc
-            dc_anterior = dc
+            dc_anterior = dc - dif
 
     return coefs
-'''
-
-
-def idpcm_dc(coefs_dpcm, altura, largura):
-    coefs_decod = np.zeros((altura, largura))
-
-    # Valor DC do primeiro bloco é o primeiro valor da matriz
-    dc_ant = coefs_dpcm[0]
-    coefs_decod[0, 0] = dc_ant
-
-    idx = 1
-
-    for y in range(0, altura, 8):
-        for x in range(0, largura, 8):
-            bloco_decod = np.zeros((8, 8))
-
-            # Subtrai a diferença do valor DC do bloco anterior
-            dc_decod = dc_ant - coefs_dpcm[-idx]
-
-            # Substitui o valor DC do bloco atual pelo valor decodificado
-            bloco_decod[0, 0] = dc_decod
-
-            # Decodifica os demais coeficientes do bloco
-            for i in range(1, 8):
-                for j in range(8):
-                    bloco_decod[i, j] = coefs_dpcm[-idx+i*8+j]
-
-            # Aplica a IDCT ao bloco decodificado
-            bloco_idct = calculate_idct(bloco_decod)
-
-            # Armazena o bloco decodificado na matriz decodificada
-            coefs_decod[y:y+8, x:x+8] = bloco_idct
-
-            # Atualiza o valor DC anterior para o valor DC atual
-            dc_ant = dc_decod
-
-            idx += 1
-
-    return coefs_decod
-
-
-def decode_dc_coefficients(diff_dc_coefficients):
-    """
-    Decodifica os coeficientes DC de cada bloco utilizando DPCM.
-    Recupera os valores originais dos coeficientes DC a partir das diferenças codificadas.
-
-    Args:
-        diff_dc_coefficients: uma lista de valores das diferenças dos coeficientes DC.
-
-    Returns:
-        Uma lista de blocos contendo os valores originais dos coeficientes DC.
-    """
-    dc_coefficients = []
-    previous_dc = 0
-    for diff in diff_dc_coefficients:
-        dc = previous_dc + diff
-        dc_coefficients.append(dc)
-        previous_dc = dc
-    return dc_coefficients
-

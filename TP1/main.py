@@ -5,7 +5,7 @@ def encode(nomeFich: str):
     if not nomeFich:
         return None
     image = plt.imread(nomeFich)
-    #visualizarImagem(image, nomeFich, "off")
+    # visualizarImagem(image, nomeFich, "off")
 
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 3 ---------------------------------------------------------'''
@@ -18,12 +18,12 @@ def encode(nomeFich: str):
     '''----------------------------------------------- EX 4 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
     padded_image = pad_image(image)
-    #visualizarImagem(padded_image, "PADDED IMAGE", "off")
+    # visualizarImagem(padded_image, "PADDED IMAGE", "off")
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 5 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
     ycbcr_image = rgb_para_ycbcr(padded_image)
-    #visualizarImagem(ycbcr_image, "RGB para YCbCr", "off")
+    # visualizarImagem(ycbcr_image, "RGB para YCbCr", "off")
     verYCbCr(ycbcr_image)
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 6 ---------------------------------------------------------'''
@@ -31,9 +31,9 @@ def encode(nomeFich: str):
     Y, Cr, Cb = separarCanais(ycbcr_image)
     Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:0")
 
-    #cv2.imshow("Y_d", Y_d)
-    #cv2.imshow("Cb_d", Cb_d)
-    #cv2.imshow("Cr_d", Cr_d)
+    # cv2.imshow("Y_d", Y_d)
+    # cv2.imshow("Cb_d", Cb_d)
+    # cv2.imshow("Cr_d", Cr_d)
     '''--------------------------------------------------------------------------------------------------------------'''
     '''----------------------------------------------- EX 7 ---------------------------------------------------------'''
     '''--------------------------------------------------------------------------------------------------------------'''
@@ -94,13 +94,12 @@ def encode(nomeFich: str):
     difCr, Cr_dcpm = dpcm_dc(quantized_img2, 8)
     cv2.imshow("Cr_DCPM", Cr_dcpm)
 
-    Y_idcpm = decode_dc_coefficients(Y_dcpm)
-    visualizarImagem(Y_idcpm, "Y_iDCPM", "off")
-    #cv2.imshow("Y_iDCPM", Y_idcpm)
-    #Cb_idcpm = dpcm_dc_inv(Cb_dcpm)
-    #cv2.imshow("Cb_iDCPM", Cb_idcpm)
-    #Cr_idcpm = dpcm_dc_inv(Cr_dcpm)
-    #cv2.imshow("Cr_iDCPM", Cr_idcpm)
+    Y_idcpm = idpcm_dc(Y_dcpm, 8)
+    cv2.imshow("Y_iDCPM", Y_idcpm)
+    # Cb_idcpm = dpcm_dc_inv(Cb_dcpm)
+    # cv2.imshow("Cb_iDCPM", Cb_idcpm)
+    # Cr_idcpm = dpcm_dc_inv(Cr_dcpm)
+    # cv2.imshow("Cr_iDCPM", Cr_idcpm)
 
     return image, padded_image, ycbcr_image, Y_d, Cb_d, Cr_d
 
@@ -108,17 +107,17 @@ def encode(nomeFich: str):
 def decode(imagemOriginal, imagemPadding, imagemYCbCr, Y_d, Cb_d, Cr_d):
     # ex 4
     unpadded_image = unpad_image(imagemPadding, imagemOriginal)
-    #visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
+    # visualizarImagem(unpadded_image, "PADDING REMOVED", "off")
     # ex 5
     rgb_image = ycbcr_para_rgb(imagemYCbCr)
-    #visualizarImagem(rgb_image, "YCbCr para RGB", "off")
+    # visualizarImagem(rgb_image, "YCbCr para RGB", "off")
     print(f"Imagem Original --> Valor do pixel [0,0]: {imagemOriginal[0][0]}")
     print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
     # ex 6
     Y_u, Cb_u, Cr_u = reconstrucao(Y_d, Cb_d, Cr_d)
-    #cv2.imshow("Y_u", Y_u)
-    #cv2.imshow("Cb_u", Cb_u)
-    #cv2.imshow("Cr_u", Cr_u)
+    # cv2.imshow("Y_u", Y_u)
+    # cv2.imshow("Cb_u", Cb_u)
+    # cv2.imshow("Cr_u", Cr_u)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
