@@ -4,24 +4,6 @@ import numpy as np
 import cv2
 from scipy.fftpack import dct, idct
 
-QY = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
-               [12, 12, 14, 19, 26, 58, 60, 55],
-               [14, 13, 16, 24, 40, 57, 69, 56],
-               [14, 17, 22, 29, 51, 87, 80, 62],
-               [18, 22, 37, 56, 68, 109, 103, 77],
-               [24, 35, 55, 64, 81, 104, 113, 92],
-               [49, 64, 78, 87, 103, 121, 120, 101],
-               [72, 92, 95, 98, 112, 100, 103, 99]])
-
-QCbCr = np.array([[17, 18, 24, 47, 99, 99, 99, 99],
-                  [18, 21, 26, 66, 99, 99, 99, 99],
-                  [24, 26, 56, 99, 99, 99, 99, 99],
-                  [47, 66, 99, 99, 99, 99, 99, 99],
-                  [99, 99, 99, 99, 99, 99, 99, 99],
-                  [99, 99, 99, 99, 99, 99, 99, 99],
-                  [99, 99, 99, 99, 99, 99, 99, 99],
-                  [99, 99, 99, 99, 99, 99, 99, 99]])
-
 
 def visualizarImagem(imagem, titulo: str = None, axis: str = None):
     plt.figure()
@@ -32,30 +14,29 @@ def visualizarImagem(imagem, titulo: str = None, axis: str = None):
     return imagem
 
 
-def visualizarConjuntoImagens(componente1, componente2, componente3, titulo: list, axis: str = None,
-                              showLogaritmo: bool = False):
+def visualizarConjuntoImagens(comp1, comp2, comp3, titulo: list, axis: str = None, showLogaritmo: bool = False):
     if showLogaritmo:
         fig, axs = plt.subplots(1, 3, figsize=(10, 5))
         axs[0].axis(axis)
-        axs[0].imshow(np.log(np.abs(componente1) + 0.0001), cmap='gray')
+        axs[0].imshow(np.log(abs(comp1 + 0.0001)), cmap='gray')
         axs[0].set_title(titulo[0])
         axs[1].axis(axis)
-        axs[1].imshow(np.log(np.abs(componente2) + 0.0001), cmap='gray')
+        axs[1].imshow(np.log(abs(comp2 + 0.0001)), cmap='gray')
         axs[1].set_title(titulo[1])
         axs[2].axis(axis)
-        axs[2].imshow(np.log(np.abs(componente3) + 0.0001), cmap='gray')
+        axs[2].imshow(np.log(abs(comp3 + 0.0001)), cmap='gray')
         axs[2].set_title(titulo[2])
 
     else:
         fig, axs = plt.subplots(1, 3, figsize=(10, 5))
         axs[0].axis(axis)
-        axs[0].imshow(componente1, cmap='gray')
+        axs[0].imshow(comp1, cmap='gray')
         axs[0].set_title(titulo[0])
         axs[1].axis(axis)
-        axs[1].imshow(componente2, cmap='gray')
+        axs[1].imshow(comp2, cmap='gray')
         axs[1].set_title(titulo[1])
         axs[2].axis(axis)
-        axs[2].imshow(componente3, cmap='gray')
+        axs[2].imshow(comp3, cmap='gray')
         axs[2].set_title(titulo[2])
     plt.show()
 
@@ -81,10 +62,7 @@ def separarCanais(imagem):
 
 
 def juntarCanais(channel1, channel2, channel3):
-    if not channel1 or not channel2 or not channel3:
-        return None
-
-    imagem = np.zeros_like(channel1, dtype=np.uint8)
+    imagem = np.zeros((channel1.shape[0], channel1.shape[1], 3))
     imagem[:, :, 0] = channel1
     imagem[:, :, 1] = channel2
     imagem[:, :, 2] = channel3
@@ -155,19 +133,24 @@ def rgb_para_ycbcr(imagem):
     xform = np.array([[.299, .587, .114], [-.168736, -.331264, .5], [.5, -.418688, -.081312]])
     ycbcr = imagem.dot(xform.T)
     ycbcr[:, :, [1, 2]] += 128
-    return np.uint8(ycbcr)
+    return ycbcr
 
 
 def ycbcr_para_rgb(imagem):
-    xform = np.array([[1, 0, 1.402], [1, -0.344136, -.714136], [1, 1.772, 0]])
+    xform = np.array([[.299, .587, .114], [-.168736, -.331264, .5], [.5, -.418688, -.081312]])
+    inversa = np.linalg.inv(xform)
+
+    # xform = np.array([[1, 0, 1.402], [1, -0.344136, -.714136], [1, 1.772, 0]])
     rgb = imagem.astype(float)
     rgb[:, :, [1, 2]] -= 128
-    rgb = rgb.dot(xform.T)
-    np.round(rgb, 0)
+    rgb = np.dot(rgb, inversa.T)
+    # rgb[:, :, 0] = inversa[0, 0] * imagem[:, :, 0] + inversa[0, 1] * (imagem[:, :, 1] - 128) + inversa[0, 2] * (imagem[:, :, 2] - 128)
+
     np.putmask(rgb, rgb > 255, 255)
     np.putmask(rgb, rgb < 0, 0)
-    rgb = rgb.astype(int)
-    return np.uint8(rgb)
+    rgb = np.round(rgb)
+
+    return rgb.astype(np.uint8)
 
 
 def subamostragem(Y, Cb, Cr, downsample: str):
@@ -212,7 +195,7 @@ def dct_bloco(imagem, BS):
     for y in range(0, altura, BS):
         for x in range(0, largura, BS):
             bloco = imagem[y:y + BS, x:x + BS]
-            bloco_dct = dct(dct(bloco, norm="ortho").T, norm="ortho").T
+            bloco_dct = calculate_dct(bloco)
             coefs[y:y + BS, x:x + BS] = bloco_dct
 
     return coefs
@@ -224,8 +207,8 @@ def idct_bloco(coefs, BS):
 
     for y in range(0, altura, BS):
         for x in range(0, largura, BS):
-            bloco_coefs = coefs[y:y + BS, x:x + BS]
-            bloco_idct = idct(idct(bloco_coefs, norm="ortho").T, norm="ortho").T
+            bloco = coefs[y:y + BS, x:x + BS]
+            bloco_idct = calculate_idct(bloco)
             imagem[y:y + BS, x:x + BS] = bloco_idct
 
     return imagem
@@ -235,17 +218,33 @@ def quantize_block(block, quantization_matrix):
     return np.round(np.divide(block, quantization_matrix))
 
 
+def dequantize_block(block, quantization_matrix):
+    return np.multiply(block, quantization_matrix).astype(float)
+
+
+def dequantize_image(img, quantization_matrix):
+    height, width = img.shape[:2]
+
+    for x in range(0, height, 8):
+        for y in range(0, width, 8):
+            block = img[x:x + 8, y:y + 8]
+            dequantized_block = np.multiply(block, quantization_matrix)
+            img[x:x + 8, y:y + 8] = dequantized_block
+
+    return img.astype(float)
+
+
 def quantize_image(img, quantization_matrix):
     height, width = img.shape[:2]
 
     quantized_img = np.zeros((height, width))
+    for x in range(0, height, 8):
+        for y in range(0, width, 8):
+            block = img[x:x + 8, y:y + 8]
+            quantized_block = np.round(block / quantization_matrix)
+            quantized_img[x:x + 8, y:y + 8] = quantized_block
 
-    for y in range(0, height, 8):
-        for x in range(0, width, 8):
-            block = img[y:y + 8, x:x + 8]
-            quantized_block = quantize_block(block, quantization_matrix)
-            quantized_img[y:y + 8, x:x + 8] = quantized_block
-    return quantized_img
+    return quantized_img.astype(int)
 
 
 def quantization_matrix(base_matrix, quality):
@@ -255,20 +254,21 @@ def quantization_matrix(base_matrix, quality):
         quality = 100
 
     if quality < 50:
-        scale = 5000 / quality
+        scale = 50 / quality
     else:
-        scale = 200 - 2 * quality
+        scale = (100 - quality) / 50
 
-    quant_matrix = np.floor((scale * base_matrix + 50) / 100)
-
-    quant_matrix[quant_matrix == 0] = 1
+    quant_matrix = np.round(scale * base_matrix)
+    quant_matrix[quant_matrix > 255] = 255
+    quant_matrix[quant_matrix < 1] = 1
+    quant_matrix = quant_matrix.astype(np.uint8)
 
     return quant_matrix
 
 
 def dpcm_dc(coefs, BS):
     altura, largura = coefs.shape
-    difs = np.zeros((altura // BS, largura // BS))
+    difs = np.copy(coefs)
     dc_anterior = 0
 
     for y in range(0, altura, BS):
@@ -277,23 +277,23 @@ def dpcm_dc(coefs, BS):
             dc = bloco[0, 0]
             dif = dc - dc_anterior
             bloco[0, 0] = dif
-            difs[y // BS, x // BS] = dif
+            difs[y:y + BS, x:x + BS] = bloco
             dc_anterior = dc
 
-    return difs, coefs
+    return difs
 
 
 def idpcm_dc(difs, BS):
     altura, largura = difs.shape
-    coefs = np.zeros((altura * BS, largura * BS))
+    coefs = np.copy(difs)
     dc_anterior = 0
 
-    for y in range(0, altura * BS, BS):
-        for x in range(0, largura * BS, BS):
-            dif = difs[y // BS, x // BS]
-            dc = dif + dc_anterior
-            bloco = coefs[y:y + BS, x:x + BS]
-            bloco[0, 0] = dc
-            dc_anterior = dc - dif
+    for y in range(0, altura, BS):
+        for x in range(0, largura, BS):
+            dif = difs[y:y + BS, x:x + BS]
+            dc = dif[0, 0] + dc_anterior
+            dif[0, 0] = dc
+            coefs[y:y + BS, x:x + BS] = dif
+            dc_anterior = dc
 
     return coefs
