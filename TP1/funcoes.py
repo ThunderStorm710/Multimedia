@@ -3,33 +3,15 @@ import matplotlib.colors as clr
 import numpy as np
 import cv2
 from scipy.fftpack import dct, idct
-from skimage import metrics
 
 
-def calcularMetricasDistorcao(imagemOriginal, imagemFinal):
-    # Calcular o MSE e o RMSE
-
-    mseValor = mse(imagemFinal, imagemOriginal)
-    rmse = np.sqrt(mseValor)
-    snr = metrics.peak_signal_noise_ratio(imagemOriginal, imagemFinal)
-    psnr = metrics.peak_signal_noise_ratio(imagemOriginal, imagemFinal, data_range=255)
-
-
-
-
-    # Imprimir os resultados
-    print('MSE:', mseValor)
-    print('RMSE:', rmse)
-    print('SNR:', snr)
-    print('PSNR:', psnr)
-
-
-def mse(actual, predicted):
-    actual = np.array(actual)
-    predicted = np.array(predicted)
-    differences = np.subtract(actual, predicted)
-    squared_differences = np.square(differences)
-    return squared_differences.mean()
+def visualizarImagemGray(imagem, titulo: str = None, axis: str = None):
+    plt.figure()
+    plt.imshow(imagem, cmap="gray")
+    plt.title(titulo)
+    plt.axis(axis)
+    plt.show()
+    return imagem
 
 
 def visualizarImagem(imagem, titulo: str = None, axis: str = None):
@@ -166,13 +148,9 @@ def rgb_para_ycbcr(imagem):
 def ycbcr_para_rgb(imagem):
     xform = np.array([[.299, .587, .114], [-.168736, -.331264, .5], [.5, -.418688, -.081312]])
     inversa = np.linalg.inv(xform)
-
-    # xform = np.array([[1, 0, 1.402], [1, -0.344136, -.714136], [1, 1.772, 0]])
     rgb = imagem.astype(float)
     rgb[:, :, [1, 2]] -= 128
     rgb = np.dot(rgb, inversa.T)
-    # rgb[:, :, 0] = inversa[0, 0] * imagem[:, :, 0] + inversa[0, 1] * (imagem[:, :, 1] - 128) + inversa[0, 2] * (imagem[:, :, 2] - 128)
-
     np.putmask(rgb, rgb > 255, 255)
     np.putmask(rgb, rgb < 0, 0)
     rgb = np.round(rgb)
@@ -197,11 +175,9 @@ def subamostragem(Y, Cb, Cr, downsample: str):
 
 
 def reconstrucao(Y, Cb_d, Cr_d):
-    # Upsampling Cb e Cr para a resolução original
     Cb = cv2.resize(Cb_d, (Y.shape[1], Y.shape[0]))
     Cr = cv2.resize(Cr_d, (Y.shape[1], Y.shape[0]))
 
-    # Não há upsampling no canal Y
     Y = Y
 
     return Y, Cb, Cr
@@ -241,34 +217,34 @@ def idct_bloco(coefs, BS):
     return imagem
 
 
-def quantize_block(block, quantization_matrix):
-    return np.round(np.divide(block, quantization_matrix))
+def quantize_block(block, matrizQuantizacao):
+    return np.round(np.divide(block, matrizQuantizacao))
 
 
-def dequantize_block(block, quantization_matrix):
-    return np.multiply(block, quantization_matrix).astype(float)
+def dequantize_block(block, matrizQuantizacao):
+    return np.multiply(block, matrizQuantizacao).astype(float)
 
 
-def dequantize_image(img, quantization_matrix):
+def dequantize_image(img, matrizQuantizacao):
     height, width = img.shape[:2]
 
     for x in range(0, height, 8):
         for y in range(0, width, 8):
             block = img[x:x + 8, y:y + 8]
-            dequantized_block = np.multiply(block, quantization_matrix)
+            dequantized_block = np.multiply(block, matrizQuantizacao)
             img[x:x + 8, y:y + 8] = dequantized_block
 
     return img.astype(float)
 
 
-def quantize_image(img, quantization_matrix):
+def quantize_image(img, matrizQuantizacao):
     height, width = img.shape[:2]
 
     quantized_img = np.zeros((height, width))
     for x in range(0, height, 8):
         for y in range(0, width, 8):
             block = img[x:x + 8, y:y + 8]
-            quantized_block = np.round(block / quantization_matrix)
+            quantized_block = np.round(block / matrizQuantizacao)
             quantized_img[x:x + 8, y:y + 8] = quantized_block
 
     return quantized_img.astype(int)
@@ -293,7 +269,7 @@ def quantization_matrix(base_matrix, quality):
     return quant_matrix
 
 
-def dpcm_dc(coefs, BS):
+def dpcm(coefs, BS):
     altura, largura = coefs.shape
     difs = np.copy(coefs)
     dc_anterior = 0
@@ -310,7 +286,7 @@ def dpcm_dc(coefs, BS):
     return difs
 
 
-def idpcm_dc(difs, BS):
+def idpcm(difs, BS):
     altura, largura = difs.shape
     coefs = np.copy(difs)
     dc_anterior = 0
@@ -324,3 +300,23 @@ def idpcm_dc(difs, BS):
             dc_anterior = dc
 
     return coefs
+
+
+def calcularMetricasDistorcao(imagemOriginal, imagemFinal, quality):
+    diff = cv2.absdiff(imagemOriginal[:, :, 0], imagemFinal[:, :, 0])
+    visualizarImagemGray(diff, "Imagem dif", "off")
+
+    imagemFinal = imagemFinal.astype(float)
+    linhas, colunas, _ = imagemOriginal.shape
+    MSE = np.sum(pow(imagemFinal - imagemOriginal, 2)) / (int(linhas) * int(colunas))
+    RMSE = np.sqrt(MSE)
+
+    P = np.sum(pow(imagemFinal, 2)) / (int(linhas) * int(colunas))
+    SNR = np.log10(P / MSE) * 10
+    PSNR = np.log10(pow(np.max(imagemFinal), 2) / MSE) * 10
+
+    print("QF =", quality)
+    print("MSE =", MSE)
+    print("RMSE =", RMSE)
+    print("SNR =", SNR)
+    print("PSNR =", PSNR)
