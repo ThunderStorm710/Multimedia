@@ -58,7 +58,7 @@ def encode(nomeFich: str):
     Cb_dct8 = dct_bloco(Cb_d, blockSize)
     Cr_dct8 = dct_bloco(Cr_d, blockSize)
 
-    visualizarConjuntoImagens(Y_dct8, Cb_dct8, Cr_dct8, ["Y_dct8", "Cb_dct8", "Cr_dct8"], 'off', True)
+    #visualizarConjuntoImagens(Y_dct8, Cb_dct8, Cr_dct8, ["Y_dct8", "Cb_dct8", "Cr_dct8"], 'off', True)
 
     # Y_dct64 = dct_bloco(Y_d, 64)
     # Cb_dct64 = dct_bloco(Cb_d, 64)
@@ -70,13 +70,13 @@ def encode(nomeFich: str):
     Cb_Q = quantize_image(Cb_dct8, matrizCbCr)
     Cr_Q = quantize_image(Cr_dct8, matrizCbCr)
 
-    visualizarConjuntoImagens(Y_Q, Cb_Q, Cr_Q, ["Y_Q", "Cb_Q", "Cr_Q"], 'off', True)
+    #visualizarConjuntoImagens(Y_Q, Cb_Q, Cr_Q, ["Y_Q", "Cb_Q", "Cr_Q"], 'off', True)
     '''----------------------------------------------- EX 9 ---------------------------------------------------------'''
     difY = dpcm_dc(Y_Q, blockSize)
     difCb = dpcm_dc(Cb_Q, blockSize)
     difCr = dpcm_dc(Cr_Q, blockSize)
 
-    visualizarConjuntoImagens(difY, difCb, difCr, ["difY", "difCb", "difCr"], 'off', True)
+    #visualizarConjuntoImagens(difY, difCb, difCr, ["difY", "difCb", "difCr"], 'off', True)
 
     return image, difY, difCb, difCr
 
@@ -88,35 +88,37 @@ def decode(imagemOriginal, difY, difCb, difCr):
     Cb_idpcm = idpcm_dc(difCb, blockSize)
     Cr_idpcm = idpcm_dc(difCr, blockSize)
 
-    visualizarConjuntoImagens(Y_idpcm, Cb_idpcm, Cr_idpcm, ["Y_idcpm", "Cb_idcpm", "Cr_idcpm"], 'off', True)
+    #visualizarConjuntoImagens(Y_idpcm, Cb_idpcm, Cr_idpcm, ["Y_idcpm", "Cb_idcpm", "Cr_idcpm"], 'off', True)
 
     Y_DQ = dequantize_image(Y_idpcm, matrizY)
     Cb_DQ = dequantize_image(Cb_idpcm, matrizCbCr)
     Cr_DQ = dequantize_image(Cr_idpcm, matrizCbCr)
 
-    visualizarConjuntoImagens(Y_DQ, Cb_DQ, Cr_DQ, ["Y_DQ", "Cb_DQ", "Cr_DQ"], 'off', True)
+    #visualizarConjuntoImagens(Y_DQ, Cb_DQ, Cr_DQ, ["Y_DQ", "Cb_DQ", "Cr_DQ"], 'off', True)
 
     Y_idct8 = idct_bloco(Y_DQ, blockSize)
     Cb_idct8 = idct_bloco(Cb_DQ, blockSize)
     Cr_idct8 = idct_bloco(Cr_DQ, blockSize)
 
-    visualizarConjuntoImagens(Y_idct8, Cb_idct8, Cr_idct8, ["Y_idct8", "Cb_idct8", "Cr_idct8"], 'off', False)
+    #visualizarConjuntoImagens(Y_idct8, Cb_idct8, Cr_idct8, ["Y_idct8", "Cb_idct8", "Cr_idct8"], 'off', False)
 
     # ex 4
     Y, Cb, Cr = reconstrucao(Y_idct8, Cb_idct8, Cr_idct8)
 
-    visualizarConjuntoImagens(Y, Cb, Cr, ["Y", "Cb", "Cr"], 'off', False)
+    #visualizarConjuntoImagens(Y, Cb, Cr, ["Y", "Cb", "Cr"], 'off', False)
     imagemYCbCr = juntarCanais(Y, Cb, Cr)
     unpadded_image = unpad_image(imagemYCbCr, imagemOriginal)
     # ex 5
     rgb_image = ycbcr_para_rgb(unpadded_image)
-    visualizarImagem(rgb_image, "IMAGEM FINAL", "off")
+    #visualizarImagem(rgb_image, "IMAGEM FINAL", "off")
     # print(f"Imagem Original --> Valor do pixel [0,0]: {imagemOriginal[0][0]}")
     # print(f"Imagem Convertida --> Valor do pixel [0,0]: {rgb_image[0][0]}")
     # ex 6
+    return rgb_image
 
 
 if __name__ == "__main__":
     plt.close('all')
     original, componente1, componente2, componente3 = encode("imagens/barn_mountains.bmp")
-    decode(original, componente1, componente2, componente3)
+    final = decode(original, componente1, componente2, componente3)
+    calcularMetricasDistorcao(original, final)

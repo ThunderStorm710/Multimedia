@@ -3,6 +3,33 @@ import matplotlib.colors as clr
 import numpy as np
 import cv2
 from scipy.fftpack import dct, idct
+from skimage import metrics
+
+
+def calcularMetricasDistorcao(imagemOriginal, imagemFinal):
+    # Calcular o MSE e o RMSE
+
+    mseValor = mse(imagemFinal, imagemOriginal)
+    rmse = np.sqrt(mseValor)
+    snr = metrics.peak_signal_noise_ratio(imagemOriginal, imagemFinal)
+    psnr = metrics.peak_signal_noise_ratio(imagemOriginal, imagemFinal, data_range=255)
+
+
+
+
+    # Imprimir os resultados
+    print('MSE:', mseValor)
+    print('RMSE:', rmse)
+    print('SNR:', snr)
+    print('PSNR:', psnr)
+
+
+def mse(actual, predicted):
+    actual = np.array(actual)
+    predicted = np.array(predicted)
+    differences = np.subtract(actual, predicted)
+    squared_differences = np.square(differences)
+    return squared_differences.mean()
 
 
 def visualizarImagem(imagem, titulo: str = None, axis: str = None):
