@@ -1,7 +1,7 @@
 from funcoes import *
 
 blockSize = 8
-qualidade = 75
+qualidade = 25
 
 QY = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
                [12, 12, 14, 19, 26, 58, 60, 55],
@@ -45,8 +45,9 @@ def encode(nomeFich: str):
     # verYCbCr(ycbcr_image)
     '''----------------------------------------------- EX 6 ---------------------------------------------------------'''
     Y, Cb, Cr = separarCanais(ycbcr_image)
-    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:2")
-    # visualizarConjuntoImagens(Y_d, Cb_d, Cr_d, ["Y_d", "Cb_d", "Cr_d"], 'off', True)
+    Y_d, Cb_d, Cr_d = subamostragem(Y, Cb, Cr, "4:2:0")
+
+    visualizarConjuntoImagens(Y_d, Cb_d, Cr_d, ["Y_d", "Cb_d", "Cr_d"], 'off', True)
     '''----------------------------------------------- EX 7 ---------------------------------------------------------'''
     # Y_dct = calculate_dct(Y_d)
     # Cb_dct = calculate_dct(Cb_d)

@@ -306,6 +306,8 @@ def calcularMetricasDistorcao(imagemOriginal, imagemFinal, quality):
     diff = cv2.absdiff(imagemOriginal[:, :, 0], imagemFinal[:, :, 0])
     visualizarImagemGray(diff, "Imagem dif", "off")
 
+
+    diff = diff.astype(float)
     imagemFinal = imagemFinal.astype(float)
     linhas, colunas, _ = imagemOriginal.shape
     MSE = np.sum(pow(imagemFinal - imagemOriginal, 2)) / (int(linhas) * int(colunas))
@@ -315,6 +317,7 @@ def calcularMetricasDistorcao(imagemOriginal, imagemFinal, quality):
     SNR = np.log10(P / MSE) * 10
     PSNR = np.log10(pow(np.max(imagemFinal), 2) / MSE) * 10
 
+    print("Imagem Diferença (Média) =", np.mean(diff))
     print("QF =", quality)
     print("MSE =", MSE)
     print("RMSE =", RMSE)
