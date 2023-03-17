@@ -1,3 +1,7 @@
+# Projeto realizado no âmbito da disciplina de Multimédia da Licenciatura em Engenharia Informática da FCTUC pelos alunos d:
+# Pedro Guilherme Ascensão nº2020233012;
+# Leonardo Moreira Pina nº2019234318;
+# Luís Filipe Neto nº2020215474
 from funcoes import *
 
 blockSize = 8
