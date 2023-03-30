@@ -35,7 +35,7 @@ def encode(nomeFich: str):
     if not nomeFich:
         return None
     image = plt.imread(nomeFich)
-    # visualizarImagem(image, nomeFich, "off")
+    visualizarImagem(image, nomeFich, "off")
     '''----------------------------------------------- EX 3 ---------------------------------------------------------'''
     # aplicarColorMap(nomeFich)
     # colormap = criarColorMap("purple-ish", [(0, 0, 0), (0.6, 0.1, 0.9)])
