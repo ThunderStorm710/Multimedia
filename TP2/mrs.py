@@ -16,14 +16,13 @@ def lerFicheiroCsv(fich: str):
     np.set_printoptions(suppress=True)
     features = np.genfromtxt(fich, delimiter=',', dtype=float, skip_header=1)
     features = features[:, 1:len(features[1]) - 1]
-    print(features)
+    # print(features)
     return features
 
 
 def normalizarFeatures(features):
     scaler = MinMaxScaler()
     normalized_features = scaler.fit_transform(features)
-    print(normalized_features)
     np.savetxt("Features Extraidas.csv", normalized_features)
     return normalized_features
 
@@ -36,36 +35,38 @@ def extrairFeatures():
         if i == 5:
             break
         print(f"FICHEIRO --> {filename}")
+
         if filename.endswith('.mp3'):
             ficheiro = os.path.join(f"MER_audio_taffc_dataset/Songs", filename)
             y, sr = librosa.load(ficheiro, sr=22050, mono=True)
 
             mfcc = librosa.feature.mfcc(y=y, sr=sr)
             mfcc = mfcc[:13, :]
-            print("MFCC = ", mfcc.shape)
+            # print("MFCC = ", mfcc.shape)
             spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
-            print("spectral_centroid = ", spectral_centroid.shape)
+            # print("spectral_centroid = ", spectral_centroid.shape)
             spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr)
-            print("spectral_bandwidth = ", spectral_bandwidth.shape)
+            # print("spectral_bandwidth = ", spectral_bandwidth.shape)
             spectral_contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
-            print("spectral_contrast = ", spectral_contrast.shape)
+            # print("spectral_contrast = ", spectral_contrast.shape)
             spectral_flatness = librosa.feature.spectral_flatness(y=y)
-            print("spectral_flatness = ", spectral_flatness.shape)
+            # print("spectral_flatness = ", spectral_flatness.shape)
             spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
-            print("spectral_rolloff = ", spectral_rolloff.shape)
+            # print("spectral_rolloff = ", spectral_rolloff.shape)
 
             # Extrair as features temporais
-            f0, _, _ = librosa.pyin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
-            print("f0 = ", f0.shape)
+            f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+            f0 = f0.reshape(1, f0.shape[0])
+            # print("f0 = ", f0.shape)
 
             rms = librosa.feature.rms(y=y)
-            print("rms = ", rms.shape)
+            # print("rms = ", rms.shape, "rms = ", rms)
             zero_crossing_rate = librosa.feature.zero_crossing_rate(y=y)
-            print("zero_crossing_rate = ", zero_crossing_rate.shape)
+            # print("zero_crossing_rate = ", zero_crossing_rate.shape)
 
             # Extrair outras features
             tempo = librosa.beat.tempo(y=y, sr=sr)
-            print("tempo = ", tempo.shape)
+            # print("tempo = ", tempo.shape)
 
             # Adicionar as features a uma lista
 
@@ -77,43 +78,69 @@ def extrairFeatures():
 
 
 def calcularEstatisticas(dados):
-    print(dados[0])
     listaDados = []
-    for i in dados:
-        if type(i) == list:
-            for j in i:
-                mean_features = np.mean(j, axis=0)
-                std_features = np.std(j, axis=0)
-                skewness_features = skew(j, axis=0)
-                kurtosis_features = kurtosis(j, axis=0)
-                median_features = np.median(j, axis=0)
-                max_features = np.max(j, axis=0)
-                min_features = np.min(j, axis=0)
 
-                listaDados.append(
+    for i in dados:  # MUSICAS
+        listaAux = []
+        contador = 0
+        aux = 0
+        print("TAMANHO DADOS = ", len(i))
+        for j in i:  # CADA FEATURE
+            print("TIPO = ", type(j), " TAMANHO = ", len(j), " SHAPE = ", j.shape)
+            if len(j) > 1:
+                for k in j:
+                    mean_features = np.mean(k)
+                    std_features = np.std(k)
+                    skewness_features = skew(k)
+                    kurtosis_features = kurtosis(k)
+                    median_features = np.median(k)
+                    max_features = np.max(k)
+                    min_features = np.min(k)
+                    print(mean_features, "---", std_features, "---", skewness_features, "---",
+                          kurtosis_features, "---",
+                          median_features, "---", max_features, "---", min_features, "-------")
+
+                    listaAux.extend(
+                        [mean_features, std_features, skewness_features, kurtosis_features, median_features,
+                         max_features,
+                         min_features])
+                    contador += 7
+                    aux += 1
+            else:
+                mean_features = np.mean(j)
+                std_features = np.std(j)
+                skewness_features = skew(j[0])
+                kurtosis_features = kurtosis(j[0])
+                median_features = np.median(j)
+                max_features = np.max(j)
+                min_features = np.min(j)
+                print(mean_features, "---", std_features, "---", skewness_features, "---", kurtosis_features, "---",
+                      median_features, "---", max_features, "---", min_features, "-------")
+
+                listaAux.extend(
                     [mean_features, std_features, skewness_features, kurtosis_features, median_features, max_features,
                      min_features])
-        else:
-            mean_features = np.mean(i, axis=0)
-            std_features = np.std(i, axis=0)
-            skewness_features = skew(i, axis=0)
-            kurtosis_features = kurtosis(i, axis=0)
-            median_features = np.median(i, axis=0)
-            max_features = np.max(i, axis=0)
-            min_features = np.min(i, axis=0)
 
-            listaDados.append(
-                [mean_features, std_features, skewness_features, kurtosis_features, median_features, max_features,
-                 min_features])
+                contador += 7
+                aux += 1
 
+        # print("LISTA AUX = ", len(listaAux), "CONTADOR = ", contador, " AUX = ", aux)
+        listaAux = np.array(listaAux, dtype=np.float64)
 
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        arr_norm = scaler.fit_transform(listaAux.reshape(-1, 1)).reshape(-1)
+        print("LISTA = ", arr_norm[0:8])
+
+        listaDados.append(listaAux)
 
         # Normalizar as features no intervalo [0, 1]
-        #norm_features = (stats_features - np.min(stats_features, axis=1, keepdims=True)) / (np.max(stats_features, axis=1, keepdims=True) - np.min(stats_features, axis=1, keepdims=True))
+        # norm_features = (stats_features - np.min(stats_features, axis=1, keepdims=True)) / (np.max(stats_features, axis=1, keepdims=True) - np.min(stats_features, axis=1, keepdims=True))
 
-        #listaDados.append(norm_features)
-    np.savetxt("Estatisitcas.txt", listaDados)
+        # listaDados.append(norm_features)
+    print(len(listaDados))
+    print(len(listaDados[1]))
     listaDados = np.array(listaDados)
+    np.savetxt("Estatisitcas.txt", listaDados)
 
     # Salvar as features normalizadas num arquivo numpy
     np.save('stats_features_librosa.csv', listaDados)
