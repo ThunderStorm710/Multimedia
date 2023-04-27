@@ -27,7 +27,7 @@ def normalizarFeatures(info):
 
 
 def extrairFeatures():
-    #features_list = np.empty(10,)
+    # features_list = np.empty(10,)
     features_list = []
     i = 0
 
@@ -66,15 +66,16 @@ def extrairFeatures():
                     print(l)
                     '''
 
-                features_list.append([mfcc, spectral_centroid, spectral_bandwidth, spectral_contrast, spectral_flatness, spectral_rolloff, f0, rms, zero_crossing_rate, tempo])
+                features_list.append([mfcc, spectral_centroid, spectral_bandwidth, spectral_contrast, spectral_flatness,
+                                      spectral_rolloff, f0, rms, zero_crossing_rate, tempo])
                 i += 1
         print(len(features_list), len(features_list[0][0]))
-        #print(features_list.shape)
+        # print(features_list.shape)
         return features_list
 
 
 def calcularEstatisticas(dados):
-    #listaDados = np.empty(shape=(0,))
+    # listaDados = np.empty(shape=(0,))
     listaDados = []
 
     for i in dados:  # MUSICAS
@@ -95,7 +96,6 @@ def calcularEstatisticas(dados):
                     valorMax = np.max(k)
                     valorMin = np.min(k)
 
-
                     listaAux.extend([mean, std, skewness, curtose, median, valorMax, valorMin])
                     contador += 7
                     aux += 1
@@ -112,7 +112,7 @@ def calcularEstatisticas(dados):
                 contador += 7
                 aux += 1
 
-        #listaDados = np.append(listaDados, listaAux, axis=0)
+        # listaDados = np.append(listaDados, listaAux, axis=0)
         listaDados.append(listaAux)
 
     print("DADOS = ", len(listaDados), len(listaDados[0]))
@@ -120,7 +120,7 @@ def calcularEstatisticas(dados):
     print("NORMALIZAR")
     normalizar(listaDados)
     print("-----------------------------------")
-    #np.savetxt("Estatisticas.txt", listaDados)
+    # np.savetxt("Estatisticas.txt", listaDados)
 
     return listaDados
 
@@ -131,7 +131,7 @@ def obterMusicas():
         if ficheiro.endswith('.mp3'):
             y, sr = librosa.load("MER_audio_taffc_dataset/Songs/" + ficheiro, sr=22050, mono=True)
             print(len(y))
-            listaMusicas = np.append(listaMusicas,y, axis=0)
+            listaMusicas = np.append(listaMusicas, y, axis=0)
 
     print("FIM = ", len(listaMusicas))
     return listaMusicas
@@ -153,26 +153,36 @@ def normalizar(lista):
     return array
 
 
-def obterDistancias():
-    lista = obterMusicas()
+def obterDistancias(lista):
+    # lista = obterMusicas()
     distanciaEuclidiana = []
     distanciaManhattan = []
     distanciaCosseno = []
-    source = 22050
+
     for i in range(len(lista)):
-        spectral_centroid1 = librosa.feature.spectral_centroid(y=lista[i], sr=source)
+        auxE = []
+        auxM = []
+        auxC = []
         for j in range(len(lista)):
-            spectral_centroid2 = librosa.feature.spectral_centroid(y=lista[j], sr=source)
-            der = euclidean_distance(spectral_centroid1[0], spectral_centroid2[0])
-            dmr = manhattan_distance(spectral_centroid1[0], spectral_centroid2[0])
-            dcr = cosine_similarity(spectral_centroid1[0], spectral_centroid2[0])
-            distanciaEuclidiana.append(der)
-            distanciaManhattan.append(dmr)
-            distanciaCosseno.append(dcr)
+            if i == j:
+                auxE.append(-1.0)
+                auxM.append(-1.0)
+                auxC.append(-1.0)
+            else:
+                der = euclidean_distance(lista[0][0][i], lista[0][0][j])
+                dmr = manhattan_distance(lista[0][0][i], lista[0][0][j])
+                dcr = cosine_similarity(lista[0][0][i], lista[0][0][j])
+                auxE.append(der)
+                auxM.append(dmr)
+                auxC.append(dcr)
+        distanciaEuclidiana.append(auxE)
+        distanciaManhattan.append(auxM)
+        distanciaCosseno.append(auxC)
+    print(len(distanciaEuclidiana), len(distanciaEuclidiana[0]))
     print(distanciaEuclidiana)
-    np.save(distanciaEuclidiana)
-    np.save(distanciaManhattan)
-    np.save(distanciaCosseno)
+    np.save("der", distanciaEuclidiana)
+    np.save("dmr", distanciaManhattan)
+    np.save("dcr", distanciaCosseno)
 
 
 def euclidean_distance(x1, x2):
@@ -204,9 +214,9 @@ if __name__ == "__main__":
 
     features = extrairFeatures()
     stats = calcularEstatisticas(features)
-    normalizarFeatures(stats)
+    # normalizarFeatures(stats)
 
-    obterDistancias()
+    obterDistancias(features)
 
     # --- Plot sound waveform
     # plt.figure()
