@@ -38,7 +38,7 @@ def extrairFeatures():
         return features_list.astype(list)
     else:
         for filename in os.listdir(f"MER_audio_taffc_dataset/Songs"):
-            if i == 10:
+            if i == 20:
                 break
             print(f"FICHEIRO --> {filename}")
 
@@ -126,14 +126,23 @@ def calcularEstatisticas(dados):
 
 
 def obterMusicas():
-    listaMusicas = np.empty(shape=(0,))
+    listaMusicas = []
     for ficheiro in os.listdir(f"MER_audio_taffc_dataset/Songs"):
         if ficheiro.endswith('.mp3'):
             y, sr = librosa.load("MER_audio_taffc_dataset/Songs/" + ficheiro, sr=22050, mono=True)
             print(len(y))
-            listaMusicas = np.append(listaMusicas, y, axis=0)
+            listaMusicas.append(y)
 
-    print("FIM = ", len(listaMusicas))
+    #print("FIM = ", len(listaMusicas))
+    return listaMusicas
+
+
+def obterNomesMusicas():
+    listaMusicas = []
+    for ficheiro in os.listdir(f"MER_audio_taffc_dataset/Songs"):
+        if ficheiro.endswith('.mp3'):
+            listaMusicas.append(ficheiro)
+
     return listaMusicas
 
 
@@ -141,14 +150,14 @@ def normalizar(lista):
     array = np.array(lista)
     scaler = MinMaxScaler(feature_range=(0, 1))
     for i in range(len(lista)):
-        print(i, " VALOR")
+        #print(i, " VALOR")
         aux = array[:, i]  # usa a sintaxe do NumPy para acessar a coluna do array
-        print(aux)
+        #print(aux)
         aux = scaler.fit_transform(aux.reshape(-1, 1))  # redimensiona a coluna para ter formato adequado
         array[:, i] = aux.flatten()  # atualiza a coluna normalizada no array
-        print(aux)
+        #print(aux)
 
-    print(len(array))
+    #print(len(array))
     np.save("ArrayNormalizado", array)
     return array
 
@@ -169,17 +178,17 @@ def obterDistancias(lista):
                 auxM.append(-1.0)
                 auxC.append(-1.0)
             else:
-                der = euclidean_distance(lista[0][0][i], lista[0][0][j])
-                dmr = manhattan_distance(lista[0][0][i], lista[0][0][j])
-                dcr = cosine_similarity(lista[0][0][i], lista[0][0][j])
+                der = euclidean_distance(lista[i][0], lista[j][0])
+                dmr = manhattan_distance(lista[i][0], lista[j][0])
+                dcr = cosine_similarity(lista[i][0], lista[j][0])
                 auxE.append(der)
                 auxM.append(dmr)
                 auxC.append(dcr)
         distanciaEuclidiana.append(auxE)
         distanciaManhattan.append(auxM)
         distanciaCosseno.append(auxC)
-    print(len(distanciaEuclidiana), len(distanciaEuclidiana[0]))
-    print(distanciaEuclidiana)
+    #print(len(distanciaEuclidiana), len(distanciaEuclidiana[0]))
+    #print(distanciaEuclidiana)
     np.save("der", distanciaEuclidiana)
     np.save("dmr", distanciaManhattan)
     np.save("dcr", distanciaCosseno)
@@ -200,6 +209,35 @@ def cosine_similarity(x1, x2):
     return dot_product / (norm_x1 * norm_x2)
 
 
+def rankingSimilaridade(ficheiro, info):
+    dir = os.listdir("Queries/")
+    listaEuclidiana = []
+    musicas = obterNomesMusicas()
+    if ficheiro in dir:
+        y, sr = librosa.load("Queries/" + ficheiro, sr=22050, mono=True)
+        mfcc = librosa.feature.mfcc(y=y, sr=sr)
+        mfcc = mfcc[0]
+        mean = np.mean(mfcc)
+        info = info[0:20]
+
+        for i in info:
+            der = euclidean_distance(i[0], mean)
+            listaEuclidiana.append(der)
+
+        array = np.array(listaEuclidiana)
+        array = np.argsort(array)
+        print(array)
+        listaMusicas = []
+        for i in array:
+            listaMusicas.append(musicas[i])
+        print(listaMusicas)
+        return array
+
+
+    else:
+        print("Query não encontrada...")
+
+
 if __name__ == "__main__":
     plt.close('all')
     fName = "Queries/MT0000202045.mp3"
@@ -216,7 +254,8 @@ if __name__ == "__main__":
     stats = calcularEstatisticas(features)
     # normalizarFeatures(stats)
 
-    obterDistancias(features)
+    obterDistancias(stats)
+    rankingSimilaridade("MT0000202045.mp3", features)
 
     # --- Plot sound waveform
     # plt.figure()
