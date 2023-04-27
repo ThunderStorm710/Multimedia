@@ -14,136 +14,165 @@ def lerFicheiroCsv(fich: str):
     if not fich:
         return None
     np.set_printoptions(suppress=True)
-    features = np.genfromtxt(fich, delimiter=',', dtype=float, skip_header=1)
-    features = features[:, 1:len(features[1]) - 1]
-    # print(features)
-    return features
+    info = np.genfromtxt(fich, delimiter=',', dtype=float, skip_header=1)
+    info = info[:, 1:len(info[1]) - 1]
+    return info
 
 
-def normalizarFeatures(features):
+def normalizarFeatures(info):
     scaler = MinMaxScaler()
-    normalized_features = scaler.fit_transform(features)
-    np.savetxt("Features Extraidas.csv", normalized_features)
+    normalized_features = scaler.fit_transform(info)
+    np.savetxt("Features Top 100.csv", normalized_features)
     return normalized_features
 
 
 def extrairFeatures():
+    #features_list = np.empty(10,)
     features_list = []
-
     i = 0
-    for filename in os.listdir(f"MER_audio_taffc_dataset/Songs"):
-        if i == 5:
-            break
-        print(f"FICHEIRO --> {filename}")
 
-        if filename.endswith('.mp3'):
-            ficheiro = os.path.join(f"MER_audio_taffc_dataset/Songs", filename)
-            y, sr = librosa.load(ficheiro, sr=22050, mono=True)
+    if not "stats_features_librosa.npy" in os.listdir():
+        features_list = np.load("stats_features_librosa.npy", allow_pickle=True)
+        print("TIPO", type(features_list.astype(list)))
+        print("TIPO", features_list)
+        return features_list.astype(list)
+    else:
+        for filename in os.listdir(f"MER_audio_taffc_dataset/Songs"):
+            if i == 10:
+                break
+            print(f"FICHEIRO --> {filename}")
 
-            mfcc = librosa.feature.mfcc(y=y, sr=sr)
-            mfcc = mfcc[:13, :]
-            # print("MFCC = ", mfcc.shape)
-            spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
-            # print("spectral_centroid = ", spectral_centroid.shape)
-            spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr)
-            # print("spectral_bandwidth = ", spectral_bandwidth.shape)
-            spectral_contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
-            # print("spectral_contrast = ", spectral_contrast.shape)
-            spectral_flatness = librosa.feature.spectral_flatness(y=y)
-            # print("spectral_flatness = ", spectral_flatness.shape)
-            spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
-            # print("spectral_rolloff = ", spectral_rolloff.shape)
+            if filename.endswith('.mp3'):
+                y, sr = librosa.load("MER_audio_taffc_dataset/Songs/" + filename, sr=22050, mono=True)
 
-            # Extrair as features temporais
-            f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
-            f0 = f0.reshape(1, f0.shape[0])
-            # print("f0 = ", f0.shape)
+                mfcc = librosa.feature.mfcc(y=y, sr=sr)
+                mfcc = mfcc[:13, :]
+                spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
+                spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr)
+                spectral_contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
+                spectral_flatness = librosa.feature.spectral_flatness(y=y)
+                spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
+                f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+                f0 = f0.reshape(1, f0.shape[0])
+                rms = librosa.feature.rms(y=y)
+                zero_crossing_rate = librosa.feature.zero_crossing_rate(y=y)
+                tempo = librosa.beat.tempo(y=y, sr=sr)
+                '''
+                a = np.array([mfcc, spectral_centroid, spectral_bandwidth, spectral_contrast, spectral_flatness, spectral_rolloff, f0, rms, zero_crossing_rate, tempo])
+                features_list = np.insert(features_list,  [a], axis=0)
+                print(features_list.shape)
+                print(len(features_list[0]))
+                for l in features_list[0]:
+                    print(l)
+                    '''
 
-            rms = librosa.feature.rms(y=y)
-            # print("rms = ", rms.shape, "rms = ", rms)
-            zero_crossing_rate = librosa.feature.zero_crossing_rate(y=y)
-            # print("zero_crossing_rate = ", zero_crossing_rate.shape)
-
-            # Extrair outras features
-            tempo = librosa.beat.tempo(y=y, sr=sr)
-            # print("tempo = ", tempo.shape)
-
-            # Adicionar as features a uma lista
-
-            features_list.append([mfcc, spectral_centroid, spectral_bandwidth, spectral_contrast, spectral_flatness,
-                                  spectral_rolloff, f0, rms, zero_crossing_rate, tempo])
-            i += 1
-
-    return features_list
+                features_list.append([mfcc, spectral_centroid, spectral_bandwidth, spectral_contrast, spectral_flatness, spectral_rolloff, f0, rms, zero_crossing_rate, tempo])
+                i += 1
+        print(len(features_list), len(features_list[0][0]))
+        #print(features_list.shape)
+        return features_list
 
 
 def calcularEstatisticas(dados):
+    #listaDados = np.empty(shape=(0,))
     listaDados = []
 
     for i in dados:  # MUSICAS
         listaAux = []
         contador = 0
         aux = 0
-        print("TAMANHO DADOS = ", len(i))
         for j in i:  # CADA FEATURE
-            print("TIPO = ", type(j), " TAMANHO = ", len(j), " SHAPE = ", j.shape)
+
+            shape = j.shape
+            print(shape, "_--")
             if len(j) > 1:
                 for k in j:
-                    mean_features = np.mean(k)
-                    std_features = np.std(k)
-                    skewness_features = skew(k)
-                    kurtosis_features = kurtosis(k)
-                    median_features = np.median(k)
-                    max_features = np.max(k)
-                    min_features = np.min(k)
-                    print(mean_features, "---", std_features, "---", skewness_features, "---",
-                          kurtosis_features, "---",
-                          median_features, "---", max_features, "---", min_features, "-------")
+                    mean = np.mean(k)
+                    std = np.std(k)
+                    skewness = skew(k)
+                    curtose = kurtosis(k)
+                    median = np.median(k)
+                    valorMax = np.max(k)
+                    valorMin = np.min(k)
 
-                    listaAux.extend(
-                        [mean_features, std_features, skewness_features, kurtosis_features, median_features,
-                         max_features,
-                         min_features])
+
+                    listaAux.extend([mean, std, skewness, curtose, median, valorMax, valorMin])
                     contador += 7
                     aux += 1
             else:
-                mean_features = np.mean(j)
-                std_features = np.std(j)
-                skewness_features = skew(j[0])
-                kurtosis_features = kurtosis(j[0])
-                median_features = np.median(j)
-                max_features = np.max(j)
-                min_features = np.min(j)
-                print(mean_features, "---", std_features, "---", skewness_features, "---", kurtosis_features, "---",
-                      median_features, "---", max_features, "---", min_features, "-------")
+                mean = np.mean(j)
+                std = np.std(j)
+                skewness = skew(j)
+                curtose = kurtosis(j)
+                median = np.median(j)
+                valorMax = np.max(j)
+                valorMin = np.min(j)
 
-                listaAux.extend(
-                    [mean_features, std_features, skewness_features, kurtosis_features, median_features, max_features,
-                     min_features])
-
+                listaAux.extend([mean, std, skewness, curtose, median, valorMax, valorMin])
                 contador += 7
                 aux += 1
 
-        # print("LISTA AUX = ", len(listaAux), "CONTADOR = ", contador, " AUX = ", aux)
-        listaAux = np.array(listaAux, dtype=np.float64)
-
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        arr_norm = scaler.fit_transform(listaAux.reshape(-1, 1)).reshape(-1)
-        print("LISTA = ", arr_norm[0:8])
-
+        #listaDados = np.append(listaDados, listaAux, axis=0)
         listaDados.append(listaAux)
 
-        # Normalizar as features no intervalo [0, 1]
-        # norm_features = (stats_features - np.min(stats_features, axis=1, keepdims=True)) / (np.max(stats_features, axis=1, keepdims=True) - np.min(stats_features, axis=1, keepdims=True))
+    print("DADOS = ", len(listaDados), len(listaDados[0]))
+    np.save('stats_features_librosa', listaDados)
+    print("NORMALIZAR")
+    normalizar(listaDados)
+    print("-----------------------------------")
+    #np.savetxt("Estatisticas.txt", listaDados)
 
-        # listaDados.append(norm_features)
-    print(len(listaDados))
-    print(len(listaDados[1]))
-    listaDados = np.array(listaDados)
-    np.savetxt("Estatisitcas.txt", listaDados)
+    return listaDados
 
-    # Salvar as features normalizadas num arquivo numpy
-    np.save('stats_features_librosa.csv', listaDados)
+
+def obterMusicas():
+    listaMusicas = np.empty(shape=(0,))
+    for ficheiro in os.listdir(f"MER_audio_taffc_dataset/Songs"):
+        if ficheiro.endswith('.mp3'):
+            y, sr = librosa.load("MER_audio_taffc_dataset/Songs/" + ficheiro, sr=22050, mono=True)
+            print(len(y))
+            listaMusicas = np.append(listaMusicas,y, axis=0)
+
+    print("FIM = ", len(listaMusicas))
+    return listaMusicas
+
+
+def normalizar(lista):
+    array = np.array(lista)
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    for i in range(len(lista)):
+        print(i, " VALOR")
+        aux = array[:, i]  # usa a sintaxe do NumPy para acessar a coluna do array
+        print(aux)
+        aux = scaler.fit_transform(aux.reshape(-1, 1))  # redimensiona a coluna para ter formato adequado
+        array[:, i] = aux.flatten()  # atualiza a coluna normalizada no array
+        print(aux)
+
+    print(len(array))
+    np.save("ArrayNormalizado", array)
+    return array
+
+
+def obterDistancias():
+    lista = obterMusicas()
+    distanciaEuclidiana = []
+    distanciaManhattan = []
+    distanciaCosseno = []
+    source = 22050
+    for i in range(len(lista)):
+        spectral_centroid1 = librosa.feature.spectral_centroid(y=lista[i], sr=source)
+        for j in range(len(lista)):
+            spectral_centroid2 = librosa.feature.spectral_centroid(y=lista[j], sr=source)
+            der = euclidean_distance(spectral_centroid1[0], spectral_centroid2[0])
+            dmr = manhattan_distance(spectral_centroid1[0], spectral_centroid2[0])
+            dcr = cosine_similarity(spectral_centroid1[0], spectral_centroid2[0])
+            distanciaEuclidiana.append(der)
+            distanciaManhattan.append(dmr)
+            distanciaCosseno.append(dcr)
+    print(distanciaEuclidiana)
+    np.save(distanciaEuclidiana)
+    np.save(distanciaManhattan)
+    np.save(distanciaCosseno)
 
 
 def euclidean_distance(x1, x2):
@@ -163,22 +192,21 @@ def cosine_similarity(x1, x2):
 
 if __name__ == "__main__":
     plt.close('all')
-
-    # --- Load file
     fName = "Queries/MT0000202045.mp3"
-    sr = 22050
+    s = 22050
     mono = True
     warnings.filterwarnings("ignore")
-    # y, fs = librosa.load(fName, sr=sr, mono=mono)
-    # print(y.shape)
-    # print(fs)
 
     # --- Play Sound
     # sd.play(y, sr, blocking=False)
     features = lerFicheiroCsv('Features - Audio MER/top100_features.csv')
     featuresNormalizadas = normalizarFeatures(features)
+
     features = extrairFeatures()
-    calcularEstatisticas(features)
+    stats = calcularEstatisticas(features)
+    normalizarFeatures(stats)
+
+    obterDistancias()
 
     # --- Plot sound waveform
     # plt.figure()
