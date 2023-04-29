@@ -27,7 +27,7 @@ def lerFicheiroCsv(fich: str, string):
 def normalizarFeatures(info):
     scaler = MinMaxScaler()
     normalized_features = scaler.fit_transform(info)
-    np.savetxt("Features Top 100.csv", normalized_features)
+    np.savetxt("Features Top 100.csv", normalized_features, delimiter=",", fmt="%.6f")
     return normalized_features
 
 
@@ -75,7 +75,7 @@ def extrairFeatures():
                 i += 1
         lista = np.array(features_list)
         np.save("Features - 900x190", lista)
-        np.savetxt("Features - 900x190.csv", features_list, delimiter=",")
+        np.savetxt("Features - 900x190.csv", features_list, delimiter=",", fmt="%.6f")
         return features_list
 
 
@@ -113,7 +113,7 @@ def normalizar(lista):
         array[:, i] = aux.flatten()  # atualiza a coluna normalizada no array
 
     np.save("Features Normalizadas 900x190", array)
-    np.savetxt("Features Normalizadas - 900x190.csv", array, delimiter=",")
+    np.savetxt("Features Normalizadas - 900x190.csv", array, delimiter=",", fmt="%.6f")
 
     return array
 
@@ -215,7 +215,6 @@ def correspondenciaMetadados():
         for i in range(len(info)):
             moods = info[i][8].split("; ")
             moods = [c.replace('"', '') for c in moods]
-
             genres = info[i][10].split("; ")
             genres = [c.replace('"', '') for c in genres]
             lista = [info[i][0].replace('"', ''), info[i][2].replace('"', ''), moods, genres]
@@ -230,10 +229,15 @@ def correspondenciaMetadados():
 
                 listaJ = [info[j][0].replace('"', ''), info[j][2].replace('"', ''), moodsJ, genresJ]
                 for k in range(len(lista)):
-                    if k == 2 or k == 3:
+                    if k == 2:
                         for p in moods:
                             if p in listaJ[k]:
                                 similaridade += 1
+                    elif k == 3:
+                        for p in genres:
+                            if p in listaJ[k]:
+                                similaridade += 1
+
                     elif lista[k] == listaJ[k]:
                         similaridade += 1
 
@@ -241,6 +245,7 @@ def correspondenciaMetadados():
 
     np.save("Similaridade", listaSimilaridade)
     np.savetxt("Similaridade.csv", listaSimilaridade, delimiter=",", fmt="%d")
+    return listaSimilaridade
 
 
 if __name__ == "__main__":
