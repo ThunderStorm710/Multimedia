@@ -119,57 +119,65 @@ def normalizar(lista):
 
 
 def obterDistancias(lista, featuresTop):
-    distanciaEuclidiana = np.zeros((900, 900))
-    distanciaManhattan = np.zeros((900, 900))
-    distanciaCosseno = np.zeros((900, 900))
-    distanciaEuclidianaTop100 = np.zeros((900, 900))
-    distanciaManhattanTop100 = np.zeros((900, 900))
-    distanciaCossenoTop100 = np.zeros((900, 900))
+    ficheiros = os.listdir()
+    if "der.npy" in ficheiros and "derTop100.npy" in ficheiros:
+        distanciaEuclidiana = np.load("der.npy", allow_pickle=True)
+        distanciaEuclidianaTop100 = np.load("derTop100.npy", allow_pickle=True)
+        return distanciaEuclidiana, distanciaEuclidianaTop100
 
-    for i in range(len(lista)):
-        for j in range(i, len(lista)):
-            if i == j:
-                distanciaEuclidiana[i][j] = -1
-                distanciaManhattan[i][j] = -1
-                distanciaCosseno[i][j] = -1
-            else:
+    else:
 
-                aux1 = np.array(lista[i])
-                aux2 = np.array(lista[j])
-                distanciaEuclidiana[i][j] = distanciaEuclidiana[j][i] = np.linalg.norm(aux1 - aux2)
-                distanciaManhattan[i][j] = distanciaManhattan[j][i] = np.sum(np.abs(aux1 - aux2))
-                distanciaCosseno[i][j] = distanciaCosseno[j][i] = cosine(aux1, aux2)
+        distanciaEuclidiana = np.zeros((900, 900))
+        distanciaManhattan = np.zeros((900, 900))
+        distanciaCosseno = np.zeros((900, 900))
+        distanciaEuclidianaTop100 = np.zeros((900, 900))
+        distanciaManhattanTop100 = np.zeros((900, 900))
+        distanciaCossenoTop100 = np.zeros((900, 900))
 
-    for i in range(len(featuresTop)):
-        for j in range(i, len(featuresTop)):
-            if i == j:
-                distanciaEuclidianaTop100[i][j] = -1
-                distanciaManhattanTop100[i][j] = -1
-                distanciaCossenoTop100[i][j] = -1
-            else:
-                aux1 = np.array(featuresTop[i])
-                aux2 = np.array(featuresTop[j])
-                distanciaEuclidianaTop100[i][j] = distanciaEuclidianaTop100[j][i] = np.linalg.norm(aux1 - aux2)
-                distanciaManhattanTop100[i][j] = distanciaManhattanTop100[j][i] = np.sum(np.abs(aux1 - aux2))
-                distanciaCossenoTop100[i][j] = distanciaCossenoTop100[j][i] = cosine(aux1, aux2)
+        for i in range(len(lista)):
+            for j in range(i, len(lista)):
+                if i == j:
+                    distanciaEuclidiana[i][j] = -1
+                    distanciaManhattan[i][j] = -1
+                    distanciaCosseno[i][j] = -1
+                else:
 
-    np.save("der", distanciaEuclidiana)
-    np.save("dmr", distanciaManhattan)
-    np.save("dcr", distanciaCosseno)
+                    aux1 = np.array(lista[i])
+                    aux2 = np.array(lista[j])
+                    distanciaEuclidiana[i][j] = distanciaEuclidiana[j][i] = np.linalg.norm(aux1 - aux2)
+                    distanciaManhattan[i][j] = distanciaManhattan[j][i] = np.sum(np.abs(aux1 - aux2))
+                    distanciaCosseno[i][j] = distanciaCosseno[j][i] = cosine(aux1, aux2)
 
-    np.savetxt("der.csv", distanciaEuclidiana, delimiter=",")
-    np.savetxt("dmr.csv", distanciaManhattan, delimiter=",")
-    np.savetxt("dcr.csv", distanciaCosseno, delimiter=",")
+        for i in range(len(featuresTop)):
+            for j in range(i, len(featuresTop)):
+                if i == j:
+                    distanciaEuclidianaTop100[i][j] = -1
+                    distanciaManhattanTop100[i][j] = -1
+                    distanciaCossenoTop100[i][j] = -1
+                else:
+                    aux1 = np.array(featuresTop[i])
+                    aux2 = np.array(featuresTop[j])
+                    distanciaEuclidianaTop100[i][j] = distanciaEuclidianaTop100[j][i] = np.linalg.norm(aux1 - aux2)
+                    distanciaManhattanTop100[i][j] = distanciaManhattanTop100[j][i] = np.sum(np.abs(aux1 - aux2))
+                    distanciaCossenoTop100[i][j] = distanciaCossenoTop100[j][i] = cosine(aux1, aux2)
 
-    np.save("derTop100", distanciaEuclidianaTop100)
-    np.save("dmrTop100", distanciaManhattanTop100)
-    np.save("dcrTop100", distanciaCossenoTop100)
+        np.save("der", distanciaEuclidiana)
+        np.save("dmr", distanciaManhattan)
+        np.save("dcr", distanciaCosseno)
 
-    np.savetxt("derTop100.csv", distanciaEuclidianaTop100, delimiter=",")
-    np.savetxt("dmrTop100.csv", distanciaManhattanTop100, delimiter=",")
-    np.savetxt("dcrTop100.csv", distanciaCossenoTop100, delimiter=",")
+        np.savetxt("der.csv", distanciaEuclidiana, delimiter=",")
+        np.savetxt("dmr.csv", distanciaManhattan, delimiter=",")
+        np.savetxt("dcr.csv", distanciaCosseno, delimiter=",")
 
-    return distanciaEuclidiana, distanciaEuclidianaTop100
+        np.save("derTop100", distanciaEuclidianaTop100)
+        np.save("dmrTop100", distanciaManhattanTop100)
+        np.save("dcrTop100", distanciaCossenoTop100)
+
+        np.savetxt("derTop100.csv", distanciaEuclidianaTop100, delimiter=",")
+        np.savetxt("dmrTop100.csv", distanciaManhattanTop100, delimiter=",")
+        np.savetxt("dcrTop100.csv", distanciaCossenoTop100, delimiter=",")
+
+        return distanciaEuclidiana, distanciaEuclidianaTop100
 
 
 def rankingSimilaridade(info, infoTop100):
@@ -205,26 +213,34 @@ def correspondenciaMetadados():
     if "panda_dataset_taffc_metadata.csv" in ficheiros:
         info = lerFicheiroCsv("MER_audio_taffc_dataset/panda_dataset_taffc_metadata.csv", True)
         for i in range(len(info)):
-            cadeia = info[i][8].split("; ")
-            lista = [info[i][0], info[i][2], cadeia, info[i][10]]
+            moods = info[i][8].split("; ")
+            moods = [c.replace('"', '') for c in moods]
 
-            for j in range(i + 1, len(info)):
+            genres = info[i][10].split("; ")
+            genres = [c.replace('"', '') for c in genres]
+            lista = [info[i][0].replace('"', ''), info[i][2].replace('"', ''), moods, genres]
+
+            for j in range(i, len(info)):
                 similaridade = 0
-                listaJ = [info[j][0], info[j][2], info[j][8].split("; "), info[j][10]]
+                moodsJ = info[j][8].split("; ")
+                moodsJ = [c.replace('"', '') for c in moodsJ]
+
+                genresJ = info[j][10].split("; ")
+                genresJ = [c.replace('"', '') for c in genresJ]
+
+                listaJ = [info[j][0].replace('"', ''), info[j][2].replace('"', ''), moodsJ, genresJ]
                 for k in range(len(lista)):
                     if k == 2 or k == 3:
-                        for p in cadeia:
+                        for p in moods:
                             if p in listaJ[k]:
                                 similaridade += 1
-                    elif lista[k] in listaJ:
+                    elif lista[k] == listaJ[k]:
                         similaridade += 1
 
                 listaSimilaridade[i][j] = listaSimilaridade[j][i] = similaridade
 
     np.save("Similaridade", listaSimilaridade)
     np.savetxt("Similaridade.csv", listaSimilaridade, delimiter=",", fmt="%d")
-
-
 
 
 if __name__ == "__main__":
@@ -243,8 +259,8 @@ if __name__ == "__main__":
     # stats = calcularEstatisticas(features)
     featuresNormalizadas = normalizar(features)
 
-    der, derTop100 = obterDistancias(featuresNormalizadas, featuresTop100)
-    rankingSimilaridade(der, derTop100)
+    #der, derTop100 = obterDistancias(featuresNormalizadas, featuresTop100)
+    #rankingSimilaridade(der, derTop100)
 
     correspondenciaMetadados()
 
