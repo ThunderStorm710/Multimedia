@@ -11,11 +11,15 @@ from scipy.stats import skew, kurtosis
 from scipy.spatial.distance import cosine
 
 
-def lerFicheiroCsv(fich: str):
+def lerFicheiroCsv(fich: str, string):
     if not fich:
         return None
     np.set_printoptions(suppress=True)
-    info = np.genfromtxt(fich, delimiter=',', dtype=float, skip_header=1)
+    if string:
+        info = np.genfromtxt(fich, delimiter=',', dtype=str, skip_header=1)
+    else:
+        info = np.genfromtxt(fich, delimiter=',', dtype=float, skip_header=1)
+
     info = info[:, 1:len(info[1]) - 1]
     return info
 
@@ -91,47 +95,6 @@ def calcularStats(dados):
     return listaAux
 
 
-def calcularEstatisticas(dados):
-    listaDados = []
-
-    for i in dados:  # MUSICAS
-        listaAux = []
-        for j in i:  # CADA FEATURE
-
-            shape = j.shape
-            print(shape, "_--")
-            if len(j) > 1:
-                for k in j:
-                    mean = np.mean(k)
-                    std = np.std(k)
-                    skewness = skew(k)
-                    curtose = kurtosis(k)
-                    median = np.median(k)
-                    valorMax = np.max(k)
-                    valorMin = np.min(k)
-
-                    listaAux.extend([mean, std, skewness, curtose, median, valorMax, valorMin])
-            else:
-                mean = np.mean(j)
-                std = np.std(j)
-                skewness = skew(j)
-                curtose = kurtosis(j)
-                median = np.median(j)
-                valorMax = np.max(j)
-                valorMin = np.min(j)
-
-                listaAux.extend([mean, std, skewness, curtose, median, valorMax, valorMin])
-
-        listaDados.append(listaAux)
-
-    print("DADOS = ", len(listaDados), len(listaDados[0]))
-    print("NORMALIZAR")
-    normalizar(listaDados)
-    print("-----------------------------------")
-
-    return listaDados
-
-
 def obterNomesMusicas():
     listaMusicas = []
     for ficheiro in os.listdir(f"MER_audio_taffc_dataset/Songs"):
@@ -164,19 +127,25 @@ def obterDistancias(lista, featuresTop):
     distanciaCossenoTop100 = np.zeros((900, 900))
 
     for i in range(len(lista)):
-        for j in range(i + 1, len(lista)):
-            aux1 = np.array(lista[i])
-            aux2 = np.array(lista[j])
-            distanciaEuclidiana[i][j] = distanciaEuclidiana[j][i] = np.linalg.norm(aux1 - aux2)
-            distanciaManhattan[i][j] = distanciaManhattan[j][i] = np.sum(np.abs(aux1 - aux2))
-            distanciaCosseno[i][j] = distanciaCosseno[j][i] = cosine(aux1, aux2)
+        for j in range(i, len(lista)):
+            if i == j:
+                distanciaEuclidiana[i][j] = -1
+                distanciaManhattan[i][j] = -1
+                distanciaCosseno[i][j] = -1
+            else:
+
+                aux1 = np.array(lista[i])
+                aux2 = np.array(lista[j])
+                distanciaEuclidiana[i][j] = distanciaEuclidiana[j][i] = np.linalg.norm(aux1 - aux2)
+                distanciaManhattan[i][j] = distanciaManhattan[j][i] = np.sum(np.abs(aux1 - aux2))
+                distanciaCosseno[i][j] = distanciaCosseno[j][i] = cosine(aux1, aux2)
 
     for i in range(len(featuresTop)):
         for j in range(i, len(featuresTop)):
             if i == j:
-                distanciaEuclidianaTop100[i][j] = distanciaEuclidianaTop100[j][i] = -1
-                distanciaManhattanTop100[i][j] = distanciaManhattanTop100[j][i] = -1
-                distanciaCossenoTop100[i][j] = distanciaCossenoTop100[j][i] = -1
+                distanciaEuclidianaTop100[i][j] = -1
+                distanciaManhattanTop100[i][j] = -1
+                distanciaCossenoTop100[i][j] = -1
             else:
                 aux1 = np.array(featuresTop[i])
                 aux2 = np.array(featuresTop[j])
@@ -200,10 +169,10 @@ def obterDistancias(lista, featuresTop):
     np.savetxt("dmrTop100.csv", distanciaManhattanTop100, delimiter=",")
     np.savetxt("dcrTop100.csv", distanciaCossenoTop100, delimiter=",")
 
-    return distanciaEuclidiana
+    return distanciaEuclidiana, distanciaEuclidianaTop100
 
 
-def rankingSimilaridade(info):
+def rankingSimilaridade(info, infoTop100):
     diretoria = os.listdir("Queries/")
     musicas = obterNomesMusicas()
     for ficheiro in diretoria:
@@ -216,10 +185,46 @@ def rankingSimilaridade(info):
 
             for i in array:
                 listaMusicas.append(musicas[i])
-            print(f"Query {ficheiro} --> {listaMusicas}")
+            print(f"Query {ficheiro} --> Features Extraidas {listaMusicas}")
+
+            listaMusicas = []
+            linha = infoTop100[indice]  # Distancia entre a query e todas as musicas
+            array = np.array(linha)
+            array = np.argsort(array)[0:20]
+            for i in array:
+                listaMusicas.append(musicas[i])
+            print(f"Query {ficheiro} --> Metadados {listaMusicas}")
 
         else:
             print(f"Query {ficheiro} não encontrada...")
+
+
+def correspondenciaMetadados():
+    ficheiros = os.listdir(f"MER_audio_taffc_dataset")
+    listaSimilaridade = np.zeros((900, 900), dtype=int)
+    if "panda_dataset_taffc_metadata.csv" in ficheiros:
+        info = lerFicheiroCsv("MER_audio_taffc_dataset/panda_dataset_taffc_metadata.csv", True)
+        for i in range(len(info)):
+            cadeia = info[i][8].split("; ")
+            lista = [info[i][0], info[i][2], cadeia, info[i][10]]
+
+            for j in range(i + 1, len(info)):
+                similaridade = 0
+                listaJ = [info[j][0], info[j][2], info[j][8].split("; "), info[j][10]]
+                for k in range(len(lista)):
+                    if k == 2 or k == 3:
+                        for p in cadeia:
+                            if p in listaJ[k]:
+                                similaridade += 1
+                    elif lista[k] in listaJ:
+                        similaridade += 1
+
+                listaSimilaridade[i][j] = listaSimilaridade[j][i] = similaridade
+
+    np.save("Similaridade", listaSimilaridade)
+    np.savetxt("Similaridade.csv", listaSimilaridade, delimiter=",", fmt="%d")
+
+
 
 
 if __name__ == "__main__":
@@ -231,15 +236,17 @@ if __name__ == "__main__":
 
     # --- Play Sound
     # sd.play(y, sr, blocking=False)
-    featuresTop100 = lerFicheiroCsv('Features - Audio MER/top100_features.csv')
+    featuresTop100 = lerFicheiroCsv('Features - Audio MER/top100_features.csv', False)
     featuresNormalizadasTop100 = normalizarFeatures(featuresTop100)
 
     features = extrairFeatures()
     # stats = calcularEstatisticas(features)
     featuresNormalizadas = normalizar(features)
 
-    der = obterDistancias(features, featuresTop100)
-    rankingSimilaridade(der)
+    der, derTop100 = obterDistancias(featuresNormalizadas, featuresTop100)
+    rankingSimilaridade(der, derTop100)
+
+    correspondenciaMetadados()
 
     # --- Plot sound waveform
     # plt.figure()
