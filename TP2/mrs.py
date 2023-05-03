@@ -1,17 +1,7 @@
-import librosa
-import librosa.display
-import librosa.beat
-import sounddevice as sd
-import warnings
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-from sklearn.preprocessing import MinMaxScaler
-from scipy.stats import skew, kurtosis
-from scipy.spatial.distance import cosine
+from funcoesAuxiliares import *
 
 
-def lerFicheiroCsv(fich: str, string):
+def lerFicheiroCsv(fich: str, string: bool):
     if not fich:
         return None
     np.set_printoptions(suppress=True)
@@ -25,25 +15,26 @@ def lerFicheiroCsv(fich: str, string):
 
 
 def normalizarFeatures(info):
-    scaler = MinMaxScaler()
-    normalized_features = scaler.fit_transform(info)
-    np.savetxt("Features Top 100.csv", normalized_features, delimiter=",", fmt="%.6f")
-    return normalized_features
+    array = np.array(info)
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    for i in range(len(info[0])):
+        aux = array[:, i]
+        aux = scaler.fit_transform(aux.reshape(-1, 1))
+        array[:, i] = aux.flatten()
+
+    np.save("Features Top 100", array)
+    np.savetxt("Features Top 100.csv", array, delimiter=",", fmt="%.6f")
+    return array
 
 
 def extrairFeatures():
     features_list = []
-    i = 0
 
     if "Features - 900x190.npy" in os.listdir():
         features_list = np.load("Features - 900x190.npy", allow_pickle=True)
         return features_list
     else:
         for filename in os.listdir(f"MER_audio_taffc_dataset/Songs"):
-            '''
-            if i == 20:
-                break
-            '''
             print(f"FICHEIRO --> {filename}")
 
             if filename.endswith('.mp3'):
@@ -72,7 +63,6 @@ def extrairFeatures():
                 lista.extend(tempo)
 
                 features_list.append(lista)
-                i += 1
         lista = np.array(features_list)
         np.save("Features - 900x190", lista)
         np.savetxt("Features - 900x190.csv", features_list, delimiter=",", fmt="%.6f")
@@ -108,9 +98,9 @@ def normalizar(lista):
     array = np.array(lista)
     scaler = MinMaxScaler(feature_range=(0, 1))
     for i in range(len(lista[0])):
-        aux = array[:, i]  # usa a sintaxe do NumPy para acessar a coluna do array
-        aux = scaler.fit_transform(aux.reshape(-1, 1))  # redimensiona a coluna para ter formato adequado
-        array[:, i] = aux.flatten()  # atualiza a coluna normalizada no array
+        aux = array[:, i]
+        aux = scaler.fit_transform(aux.reshape(-1, 1))
+        array[:, i] = aux.flatten()
 
     np.save("Features Normalizadas 900x190", array)
     np.savetxt("Features Normalizadas - 900x190.csv", array, delimiter=",", fmt="%.6f")
@@ -165,25 +155,28 @@ def obterDistancias(lista, featuresTop):
         np.save("dmr", distanciaManhattan)
         np.save("dcr", distanciaCosseno)
 
-        np.savetxt("der.csv", distanciaEuclidiana, delimiter=",")
-        np.savetxt("dmr.csv", distanciaManhattan, delimiter=",")
-        np.savetxt("dcr.csv", distanciaCosseno, delimiter=",")
+        np.savetxt("der.csv", distanciaEuclidiana, delimiter=",", fmt="%.6f")
+        np.savetxt("dmr.csv", distanciaManhattan, delimiter=",", fmt="%.6f")
+        np.savetxt("dcr.csv", distanciaCosseno, delimiter=",", fmt="%.6f")
 
         np.save("derTop100", distanciaEuclidianaTop100)
         np.save("dmrTop100", distanciaManhattanTop100)
         np.save("dcrTop100", distanciaCossenoTop100)
 
-        np.savetxt("derTop100.csv", distanciaEuclidianaTop100, delimiter=",")
-        np.savetxt("dmrTop100.csv", distanciaManhattanTop100, delimiter=",")
-        np.savetxt("dcrTop100.csv", distanciaCossenoTop100, delimiter=",")
+        np.savetxt("derTop100.csv", distanciaEuclidianaTop100, delimiter=",", fmt="%.6f")
+        np.savetxt("dmrTop100.csv", distanciaManhattanTop100, delimiter=",", fmt="%.6f")
+        np.savetxt("dcrTop100.csv", distanciaCossenoTop100, delimiter=",", fmt="%.6f")
 
         return distanciaEuclidiana, distanciaEuclidianaTop100
 
 
 def rankingSimilaridade(info, infoTop100):
+    print("---- Ranking Similaridade ----")
+    listaRanking = {}
     diretoria = os.listdir("Queries/")
     musicas = obterNomesMusicas()
     for ficheiro in diretoria:
+        listaAux = []
         if ficheiro.endswith(".mp3"):
             listaMusicas = []
             indice = musicas.index(ficheiro)  # Indice da musica/query
@@ -194,98 +187,155 @@ def rankingSimilaridade(info, infoTop100):
             for i in array:
                 listaMusicas.append(musicas[i])
             print(f"Query {ficheiro} --> Features Extraidas {listaMusicas}")
-
+            listaAux.append(listaMusicas)
             listaMusicas = []
             linha = infoTop100[indice]  # Distancia entre a query e todas as musicas
             array = np.array(linha)
             array = np.argsort(array)[0:20]
             for i in array:
                 listaMusicas.append(musicas[i])
+            listaAux.append(listaMusicas)
+            listaRanking[ficheiro] = listaMusicas
+            print(f"                       --> Metadados {listaMusicas}")
+
+        else:
+            print(f"Query {ficheiro} não encontrada...")
+    return listaRanking
+
+
+def correspondenciaMetadados():
+    ficheiros = os.listdir()
+    if "Similaridade.npy" in ficheiros:
+        listaSimilaridade = np.load("Similaridade.npy", allow_pickle=True)
+        return listaSimilaridade
+    else:
+        ficheiros = os.listdir(f"MER_audio_taffc_dataset")
+        listaSimilaridade = np.zeros((900, 900), dtype=int)
+        if "panda_dataset_taffc_metadata.csv" in ficheiros:
+            info = lerFicheiroCsv("MER_audio_taffc_dataset/panda_dataset_taffc_metadata.csv", True)
+            for i in range(len(info)):
+                moods = info[i][8].split("; ")
+                moods = [c.replace('"', '') for c in moods]
+                genres = info[i][10].split("; ")
+                genres = [c.replace('"', '') for c in genres]
+                lista = [info[i][0].replace('"', ''), info[i][2].replace('"', ''), moods, genres]
+
+                for j in range(i, len(info)):
+                    similaridade = 0
+                    moodsJ = info[j][8].split("; ")
+                    moodsJ = [c.replace('"', '') for c in moodsJ]
+
+                    genresJ = info[j][10].split("; ")
+                    genresJ = [c.replace('"', '') for c in genresJ]
+
+                    listaJ = [info[j][0].replace('"', ''), info[j][2].replace('"', ''), moodsJ, genresJ]
+                    for k in range(len(lista)):
+                        if k == 2:
+                            for p in moods:
+                                if p in listaJ[k]:
+                                    similaridade += 1
+                        elif k == 3:
+                            for p in genres:
+                                if p in listaJ[k]:
+                                    similaridade += 1
+
+                        elif lista[k] == listaJ[k]:
+                            similaridade += 1
+
+                    listaSimilaridade[i][j] = listaSimilaridade[j][i] = similaridade
+
+        np.save("Similaridade", listaSimilaridade)
+        np.savetxt("Similaridade.csv", listaSimilaridade, delimiter=",", fmt="%d")
+        return listaSimilaridade
+
+
+def rankingMetadados(similaridadeMetadados):
+    print("---- Ranking Metadados ----")
+    diretoria = os.listdir("Queries/")
+    musicas = obterNomesMusicas()
+    listaRanking = {}
+    for ficheiro in diretoria:
+        if ficheiro.endswith(".mp3"):
+            listaMusicas = []
+            indice = musicas.index(ficheiro)  # Indice da musica/query
+            linha = similaridadeMetadados[indice]  # Distancia entre a query e todas as musicas
+            array = np.array(linha)
+            array = np.argsort(array)[len(array):len(array) - 20:-1]
+
+            for i in array:
+                listaMusicas.append(musicas[i])
             print(f"Query {ficheiro} --> Metadados {listaMusicas}")
+            listaRanking[ficheiro] = listaMusicas
+
+        else:
+            print(f"Query {ficheiro} não encontrada...")
+    return listaRanking
+
+
+def precisaoSimilaridade(infoSimilaridade, infoMetadados):
+    if not infoSimilaridade or not infoMetadados:
+        return None
+
+    listaPrecisao = []
+
+    for i, j in infoMetadados.items():
+        conta = 0
+        for k in infoSimilaridade[i]:
+            if k in j:
+                conta += 1
+        listaPrecisao.append((conta / 20) * 100)
+
+    media = 0
+    for i in listaPrecisao:
+        media += i
+    media = media / len(listaPrecisao)
+    print(listaPrecisao, media)
+
+
+
+def recomendacoes(nomeFich):
+    ficheiros = os.listdir()
+    if nomeFich in ficheiros:
+        cosseno = np.load(nomeFich, allow_pickle=True)
+    else:
+        print(f"Ficheiro {nomeFich} não encontrado...")
+        return None
+
+    listaRanking = []
+    diretoria = os.listdir("Queries/")
+    musicas = obterNomesMusicas()
+    for ficheiro in diretoria:
+        if ficheiro.endswith(".mp3"):
+            listaMusicas = []
+            indice = musicas.index(ficheiro)  # Indice da musica/query
+            linha = cosseno[indice]  # Distancia entre a query e todas as musicas
+            array = np.array(linha)
+            array = np.argsort(array)[0:20]
+
+            for i in array:
+                listaMusicas.append(musicas[i])
+            print(f"Query {ficheiro} --> Features Extraidas {listaMusicas}")
+            listaRanking.append(listaMusicas)
 
         else:
             print(f"Query {ficheiro} não encontrada...")
 
 
-def correspondenciaMetadados():
-    ficheiros = os.listdir(f"MER_audio_taffc_dataset")
-    listaSimilaridade = np.zeros((900, 900), dtype=int)
-    if "panda_dataset_taffc_metadata.csv" in ficheiros:
-        info = lerFicheiroCsv("MER_audio_taffc_dataset/panda_dataset_taffc_metadata.csv", True)
-        for i in range(len(info)):
-            moods = info[i][8].split("; ")
-            moods = [c.replace('"', '') for c in moods]
-            genres = info[i][10].split("; ")
-            genres = [c.replace('"', '') for c in genres]
-            lista = [info[i][0].replace('"', ''), info[i][2].replace('"', ''), moods, genres]
-
-            for j in range(i, len(info)):
-                similaridade = 0
-                moodsJ = info[j][8].split("; ")
-                moodsJ = [c.replace('"', '') for c in moodsJ]
-
-                genresJ = info[j][10].split("; ")
-                genresJ = [c.replace('"', '') for c in genresJ]
-
-                listaJ = [info[j][0].replace('"', ''), info[j][2].replace('"', ''), moodsJ, genresJ]
-                for k in range(len(lista)):
-                    if k == 2:
-                        for p in moods:
-                            if p in listaJ[k]:
-                                similaridade += 1
-                    elif k == 3:
-                        for p in genres:
-                            if p in listaJ[k]:
-                                similaridade += 1
-
-                    elif lista[k] == listaJ[k]:
-                        similaridade += 1
-
-                listaSimilaridade[i][j] = listaSimilaridade[j][i] = similaridade
-
-    np.save("Similaridade", listaSimilaridade)
-    np.savetxt("Similaridade.csv", listaSimilaridade, delimiter=",", fmt="%d")
-    return listaSimilaridade
-
-
 if __name__ == "__main__":
-    plt.close('all')
-    fName = "Queries/MT0000202045.mp3"
-    s = 22050
-    mono = True
-    warnings.filterwarnings("ignore")
-
-    # --- Play Sound
-    # sd.play(y, sr, blocking=False)
     featuresTop100 = lerFicheiroCsv('Features - Audio MER/top100_features.csv', False)
     featuresNormalizadasTop100 = normalizarFeatures(featuresTop100)
 
     features = extrairFeatures()
-    # stats = calcularEstatisticas(features)
     featuresNormalizadas = normalizar(features)
 
-    #der, derTop100 = obterDistancias(featuresNormalizadas, featuresTop100)
-    #rankingSimilaridade(der, derTop100)
+    der, derTop100 = obterDistancias(featuresNormalizadas, featuresNormalizadasTop100)
+    rankingS = rankingSimilaridade(der, derTop100)
 
-    correspondenciaMetadados()
+    similaridadeFeatures = correspondenciaMetadados()
+    rankingM = rankingMetadados(similaridadeFeatures)
 
-    # --- Plot sound waveform
-    # plt.figure()
-    # librosa.display.waveshow(y)
+    precisaoSimilaridade(rankingS, rankingM)
+    #recomendacoes("dcrTop100.npy")
+    #recomendacoes("Similaridade.npy")
 
-    # --- Plot spectrogram
-    # Y = np.abs(librosa.stft(y))
-    # Ydb = librosa.amplitude_to_db(Y, ref=np.max)
-    # fig, ax = plt.subplots()
-    # img = librosa.display.specshow(Ydb, y_axis='linear', x_axis='time', ax=ax)
-    # ax.set_title('Power spectrogram')
-    # fig.colorbar(img, ax=ax, format="%+2.0f dB")
-
-    # --- Extract features
-    # rms = librosa.feature.rms(y=y)
-    # rms = rms[0, :]
-    # print(rms.shape)
-    # times = librosa.times_like(rms)
-    # plt.figure(), plt.plot(times, rms)
-    # plt.xlabel('Time (s)')
-    # plt.title('RMS')
+    #extrairRMS()
