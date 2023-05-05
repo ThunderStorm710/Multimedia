@@ -52,7 +52,9 @@ def extrairFeatures():
                 lista.extend(calcularStats(spectral_flatness))
                 spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
                 lista.extend(calcularStats(spectral_rolloff))
-                f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+                # f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+                f0 = librosa.yin(y, fmin=20, fmax=11025)
+                f0[f0 == 11025] = 0
                 f0 = f0.reshape(1, f0.shape[0])
                 lista.extend(calcularStats(f0))
                 rms = librosa.feature.rms(y=y)
@@ -182,24 +184,27 @@ def rankingSimilaridade(info, infoTop100):
             indice = musicas.index(ficheiro)  # Indice da musica/query
             linha = info[indice]  # Distancia entre a query e todas as musicas
             array = np.array(linha)
-            array = np.argsort(array)[0:20]
+            array = np.argsort(array)[0:21]
 
             for i in array:
                 listaMusicas.append(musicas[i])
             print(f"Query {ficheiro} --> Features Extraidas {listaMusicas}")
             listaAux.append(listaMusicas)
+            listaRanking[ficheiro] = listaMusicas
             listaMusicas = []
             linha = infoTop100[indice]  # Distancia entre a query e todas as musicas
             array = np.array(linha)
-            array = np.argsort(array)[0:20]
+            array = np.argsort(array)[0:21]
             for i in array:
                 listaMusicas.append(musicas[i])
             listaAux.append(listaMusicas)
-            listaRanking[ficheiro] = listaMusicas
             print(f"                       --> Metadados {listaMusicas}")
 
         else:
             print(f"Query {ficheiro} não encontrada...")
+
+    for i in listaRanking:
+        listaRanking[i] = listaRanking[i][1:]
     return listaRanking
 
 
@@ -260,7 +265,7 @@ def rankingMetadados(similaridadeMetadados):
             indice = musicas.index(ficheiro)  # Indice da musica/query
             linha = similaridadeMetadados[indice]  # Distancia entre a query e todas as musicas
             array = np.array(linha)
-            array = np.argsort(array)[len(array):len(array) - 20:-1]
+            array = np.argsort(array)[len(array):len(array) - 22:-1]
 
             for i in array:
                 listaMusicas.append(musicas[i])
@@ -269,6 +274,9 @@ def rankingMetadados(similaridadeMetadados):
 
         else:
             print(f"Query {ficheiro} não encontrada...")
+
+    for i in listaRanking:
+        listaRanking[i] = listaRanking[i][1:]
     return listaRanking
 
 
@@ -310,15 +318,18 @@ def recomendacoes(nomeFich):
             indice = musicas.index(ficheiro)  # Indice da musica/query
             linha = cosseno[indice]  # Distancia entre a query e todas as musicas
             array = np.array(linha)
-            array = np.argsort(array)[0:20]
+            array = np.argsort(array)[1:21]
 
             for i in array:
                 listaMusicas.append(musicas[i])
             print(f"Query {ficheiro} --> Features Extraidas {listaMusicas}")
+            for i in listaMusicas:
+                print(i)
             listaRanking.append(listaMusicas)
 
         else:
             print(f"Query {ficheiro} não encontrada...")
+
 
 
 if __name__ == "__main__":
@@ -335,7 +346,7 @@ if __name__ == "__main__":
     rankingM = rankingMetadados(similaridadeFeatures)
 
     precisaoSimilaridade(rankingS, rankingM)
-    #recomendacoes("dcrTop100.npy")
-    #recomendacoes("Similaridade.npy")
+    recomendacoes("dcrTop100.npy")
+    recomendacoes("Similaridade.npy")
 
     #extrairRMS()
